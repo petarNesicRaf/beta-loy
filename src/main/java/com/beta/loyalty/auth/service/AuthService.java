@@ -5,8 +5,8 @@ import com.beta.loyalty.auth.UserType;
 import com.beta.loyalty.auth.jwt.dto.LoginRequest;
 import com.beta.loyalty.auth.TokenResponse;
 import com.beta.loyalty.auth.jwt.token.JwtService;
-import com.beta.loyalty.auth.jwt.repo.CustomerRepository;
-import com.beta.loyalty.auth.jwt.repo.StaffUserRepository;
+import com.beta.loyalty.auth.jwt.repo.CustomerAuthRepository;
+import com.beta.loyalty.auth.jwt.repo.StaffAuthRepository;
 import com.beta.loyalty.auth.oauth.OauthProvider;
 import com.beta.loyalty.auth.oauth.google.GoogleIdTokenVerifierService;
 import com.beta.loyalty.auth.oauth.google.GoogleLoginRequest;
@@ -28,8 +28,8 @@ import java.util.List;
 @AllArgsConstructor
 @Service
 public class AuthService {
-    private final CustomerRepository customerRepo;
-    private final StaffUserRepository staffRepo;
+    private final CustomerAuthRepository customerRepo;
+    private final StaffAuthRepository staffRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final JwtProperties jwtProps;

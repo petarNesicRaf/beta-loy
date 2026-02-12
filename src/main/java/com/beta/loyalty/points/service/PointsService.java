@@ -1,12 +1,11 @@
 package com.beta.loyalty.points.service;
 
-import com.beta.loyalty.auth.jwt.repo.CustomerRepository;
+import com.beta.loyalty.auth.jwt.repo.CustomerAuthRepository;
 import com.beta.loyalty.domain.customer.Customer;
 import com.beta.loyalty.domain.enums.LedgerSourceType;
 import com.beta.loyalty.domain.enums.LedgerType;
 import com.beta.loyalty.domain.points.PointsAccount;
 import com.beta.loyalty.domain.points.PointsLedgerEntry;
-import com.beta.loyalty.domain.tenant.Tenant;
 import com.beta.loyalty.domain.venue.Venue;
 import com.beta.loyalty.points.repository.PointsAccountRepository;
 import com.beta.loyalty.points.repository.PointsLedgerEntryRepository;
@@ -23,7 +22,7 @@ import java.util.UUID;
 public class PointsService {
     private final PointsAccountRepository pointsAccountRepository;
     private final PointsLedgerEntryRepository ledgerRepository;
-    private final CustomerRepository customerRepository;
+    private final CustomerAuthRepository customerAuthRepository;
     private final VenueRepository venueRepository;
 
 
@@ -54,7 +53,7 @@ public class PointsService {
         }
 
         // Use references for performance; will throw if missing when flushed
-        Customer customerRef = customerRepository.getReferenceById(customerId);
+        Customer customerRef = customerAuthRepository.getReferenceById(customerId);
         Venue venueRef = venueRepository.getReferenceById(venueId);
 
         // (optional but recommended) ensure venue is ACTIVE for customer flows:

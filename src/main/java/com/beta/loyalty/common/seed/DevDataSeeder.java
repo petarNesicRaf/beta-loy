@@ -1,6 +1,6 @@
 package com.beta.loyalty.common.seed;
 
-import com.beta.loyalty.auth.jwt.repo.CustomerRepository;
+import com.beta.loyalty.auth.jwt.repo.CustomerAuthRepository;
 import com.beta.loyalty.domain.customer.Customer;
 import com.beta.loyalty.domain.enums.CustomerStatus;
 import jakarta.transaction.Transactional;
@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DevDataSeeder implements ApplicationRunner {
 
-    private final CustomerRepository customerRepository;
+    private final CustomerAuthRepository customerAuthRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.seed.enabled:false}")
@@ -39,7 +39,7 @@ public class DevDataSeeder implements ApplicationRunner {
         // Later: seedTenants(); seedStaff(); seedRewards(); etc.
     }
     private void seedCustomer() {
-        var existing = customerRepository.findByEmailIgnoreCase(seedEmail);
+        var existing = customerAuthRepository.findByEmailIgnoreCase(seedEmail);
         if (existing.isPresent()) return;
 
         Customer c = new Customer();
@@ -50,7 +50,7 @@ public class DevDataSeeder implements ApplicationRunner {
         // For password-based testing only. OAuth customers can leave passwordHash null.
         c.setPasswordHash(passwordEncoder.encode(seedPassword));
 
-        customerRepository.save(c);
+        customerAuthRepository.save(c);
 
         System.out.println("[SEED] Created customer: " + seedEmail);
     }

@@ -1,7 +1,7 @@
 package com.beta.loyalty.receipts.service;
 
 import com.beta.loyalty.auth.CurrentUser;
-import com.beta.loyalty.auth.jwt.repo.CustomerRepository;
+import com.beta.loyalty.auth.jwt.repo.CustomerAuthRepository;
 import com.beta.loyalty.domain.customer.Customer;
 import com.beta.loyalty.domain.enums.LedgerSourceType;
 import com.beta.loyalty.domain.enums.ReceiptClaimStatus;
@@ -29,7 +29,7 @@ import java.util.UUID;
 public class ReceiptClaimService {
     private final ReceiptRepository receiptRepository;
     private final ReceiptClaimRepository claimRepository;
-    private final CustomerRepository customerRepository;
+    private final CustomerAuthRepository customerAuthRepository;
     private final VenueRepository venueRepository;
     private final PointsService pointsService;
 
@@ -55,7 +55,7 @@ public class ReceiptClaimService {
         }
 
         // References (fast)
-        Customer customerRef = customerRepository.getReferenceById(customerId);
+        Customer customerRef = customerAuthRepository.getReferenceById(customerId);
         Venue venueRef = venueRepository.getReferenceById(req.venueId());
         String venuePib = normalizePib(venueRef.getPib());
         String reqPib   = normalizePib(req.pib());
