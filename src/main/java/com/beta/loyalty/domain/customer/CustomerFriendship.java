@@ -11,7 +11,13 @@ import java.time.OffsetDateTime;
 @Setter
 @Entity
 @Table(name = "customer_friendships",
-        uniqueConstraints = @UniqueConstraint(name = "ux_friendship_pair", columnNames = {"customer_a_id", "customer_b_id"}))
+        uniqueConstraints = @UniqueConstraint(name = "ux_friendship_pair", columnNames = {"customer_a_id", "customer_b_id"}),
+        indexes = {
+                @Index(name="ix_friendships_customer_a", columnList="customer_a_id"),
+                @Index(name="ix_friendships_customer_b", columnList="customer_b_id"),
+                @Index(name="ix_friendships_status", columnList="status")
+        }
+)
 public class CustomerFriendship extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_a_id", nullable = false)

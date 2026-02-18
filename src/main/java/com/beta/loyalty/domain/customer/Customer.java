@@ -14,10 +14,20 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
-@Table(name = "customers")
+@Table(name = "customers",
+        indexes = {
+                @Index(name = "ix_customers_username", columnList = "username"),
+                @Index(name = "ix_customers_display_name", columnList = "displayName")
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(name = "ux_customers_username", columnNames = {"username"})
+        })
 public class Customer extends BaseEntity {
     @Column(length = 320)
     String email;
+
+    @Column(nullable = false, length = 32)
+    String username;
 
     @Column(length = 40)
     String phone;
@@ -40,4 +50,9 @@ public class Customer extends BaseEntity {
 
     @OneToMany(mappedBy = "customer", fetch = FetchType.LAZY)
     List<RedemptionRequest> redemptionRequests = new ArrayList<>();
+//
+//    @PrePersist @PreUpdate
+//    void normUsername() {
+//        if (username != null) username = username.toLowerCase().trim();
+//    }
 }

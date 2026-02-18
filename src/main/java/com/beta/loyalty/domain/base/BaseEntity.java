@@ -35,4 +35,5 @@ public abstract class BaseEntity {
     void preUpdate() {
         updatedAt = OffsetDateTime.now();
     }
+
 }
