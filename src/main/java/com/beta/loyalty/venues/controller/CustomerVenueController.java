@@ -3,6 +3,7 @@ package com.beta.loyalty.venues.controller;
 import com.beta.loyalty.venues.dto.VenueDetailsWithRewardResponse;
 import com.beta.loyalty.venues.dto.VenuePublicResponse;
 import com.beta.loyalty.venues.service.CustomerVenueService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +14,10 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/customer/venues")
+@Tag(
+        name = "Customer Venue",
+        description = "Listanje, pretraga i detalji lokala (sa zaradjenim poenima - progres bar) "
+)
 @RequiredArgsConstructor
 public class CustomerVenueController {
     private final CustomerVenueService customerVenueService;

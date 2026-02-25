@@ -6,6 +6,7 @@ import com.beta.loyalty.friends.dto.FriendRequestCreateDto;
 import com.beta.loyalty.friends.dto.FriendshipDto;
 import com.beta.loyalty.friends.service.CustomerSearchService;
 import com.beta.loyalty.friends.service.FriendshipService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,10 +19,15 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/customer/me/friends")
+@Tag(
+        name = "Friends",
+        description = "Sve operacije vezane za prijatelje trenutnog user-a."
+)
 public class MeFriendsController {
 
     private final FriendshipService friendshipService;
     private final CustomerSearchService customerSearchService;
+
     @GetMapping("/search")
     public Page<CustomerSearchItemDto> searchCustomers(
             @RequestParam String q,
@@ -32,7 +38,7 @@ public class MeFriendsController {
     }
 
     //todo zameni extractcustomerid stavi ga u servise
-    @PostMapping("/add-friend")
+    @PostMapping("/requests")
     public FriendshipDto sendRequest(
             @AuthenticationPrincipal Object principal,
             @RequestBody FriendRequestCreateDto body
@@ -66,7 +72,7 @@ public class MeFriendsController {
         return friendshipService.cancel(me, friendshipId);
     }
 
-    @GetMapping("/all-friends")
+    @GetMapping("/accepted")
     public Page<FriendshipDto> listAccepted(
             @PageableDefault(size = 20) Pageable pageable
     ) {

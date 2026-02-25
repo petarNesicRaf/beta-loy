@@ -54,16 +54,27 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             );
 
             var authorities = roles.stream().map(SimpleGrantedAuthority::new).toList();
-
             var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
 
+            SecurityContextHolder.getContext().setAuthentication(authentication);
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
         }
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI(); // <-- important
+        System.out.println("Swagger check uri=" + path);
+
+        return path.startsWith("/v3/api-docs")
+                || path.startsWith("/swagger-ui")
+                || path.equals("/swagger-ui.html")
+                || path.startsWith("/swagger");
+    }
+
 }
 

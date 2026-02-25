@@ -125,13 +125,19 @@
 			<artifactId>google-api-client</artifactId>
 			<version>2.8.1</version>
 		</dependency>
-<!--google jackson-->
+		<!--google jackson-->
 		<dependency>
 			<groupId>com.google.http-client</groupId>
 			<artifactId>google-http-client-jackson2</artifactId>
 			<version>1.44.1</version>
 		</dependency>
 
+<!--		swagger-->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+			<version>3.0.0</version>
+		</dependency>
 
 		<!-- Testing -->
 		<dependency>

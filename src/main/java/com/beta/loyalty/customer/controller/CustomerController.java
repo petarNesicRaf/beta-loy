@@ -3,6 +3,7 @@ package com.beta.loyalty.customer.controller;
 import com.beta.loyalty.customer.dto.CustomerMeResponse;
 import com.beta.loyalty.customer.dto.CustomerVenuePointsAccount;
 import com.beta.loyalty.customer.service.CustomerService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +13,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/customer/details")
+@Tag(
+        name = "Customer",
+        description = "Operacije vezane za musteriju, izvlacenje poena po lokalu"
+)
 @RequiredArgsConstructor
 public class CustomerController {
     private final CustomerService customerService;
