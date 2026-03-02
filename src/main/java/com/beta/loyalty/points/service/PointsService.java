@@ -120,4 +120,36 @@ public class PointsService {
                     .orElseThrow(() -> new IllegalStateException("PointsAccount exists but not found"));
         }
     }
+
+    @Transactional
+    public void debitForRedemption(UUID tenantId, UUID customerId, UUID venueId, UUID redemptionRequestId, long pointsCost) {
+
+        PointsAccount pa = pointsAccountRepository.findForUpdate(customerId, venueId)
+                .orElseThrow(() -> new IllegalStateException("PointsAccount missing"));
+
+        if (pa.getCurrentBalance() < pointsCost) {
+            throw new IllegalStateException("Insufficient points");
+        }
+
+        if (ledgerRepository.existsBySourceTypeAndSourceIdAndCustomerId(
+                LedgerSourceType.REDEMPTION_REQUEST, redemptionRequestId, customerId)) {
+            return; // already debited
+        }
+
+        PointsLedgerEntry entry = new PointsLedgerEntry();
+        entry.setTenantId(tenantId);
+        entry.setPointsAccount(pa);
+        entry.setVenue(pa.getVenue());
+        entry.setCustomer(pa.getCustomer());
+        entry.setType(LedgerType.DEBIT);
+        entry.setPointsDelta(-pointsCost);
+        entry.setSourceType(LedgerSourceType.REDEMPTION_REQUEST);
+        entry.setSourceId(redemptionRequestId);
+
+        ledgerRepository.save(entry);
+
+        pa.setCurrentBalance(pa.getCurrentBalance() - pointsCost);
+        pointsAccountRepository.save(pa);
+    }
+
 }

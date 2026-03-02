@@ -13,11 +13,19 @@ import java.time.OffsetDateTime;
 @Getter
 @Setter
 @Entity
-@Table(name = "redemption_requests")
+@Table(
+        name = "redemption_requests",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "ux_redemption_customer_idem",
+                        columnNames = {"customer_id", "idempotency_key"})
+        },
+        indexes = {
+                @Index(name = "ix_redemption_venue_status",
+                        columnList = "venue_id,status")
+        }
+)
 public class RedemptionRequest extends TenantOwnedEntity {
-    //ko trazi nagradu
-    //koji lokal
-    //koja nagrada
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "venue_id", nullable = false)
     Venue venue;
@@ -55,6 +63,13 @@ public class RedemptionRequest extends TenantOwnedEntity {
     @Column(length = 500)
     String customerNote;
 
-    @OneToOne(mappedBy = "redemptionRequest", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Column(name = "idempotency_key", length = 80)
+    String idempotencyKey;
+
+    @Version
+    long version;
+
+    @OneToOne(mappedBy = "redemptionRequest", fetch = FetchType.LAZY,
+            cascade = CascadeType.ALL, orphanRemoval = true)
     RedemptionDecision decision;
 }
