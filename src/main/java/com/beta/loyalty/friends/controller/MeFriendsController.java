@@ -8,6 +8,7 @@ import com.beta.loyalty.friends.service.CustomerSearchService;
 import com.beta.loyalty.friends.service.FriendshipService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -41,7 +42,7 @@ public class MeFriendsController {
     @PostMapping("/requests")
     public FriendshipDto sendRequest(
             @AuthenticationPrincipal Object principal,
-            @RequestBody FriendRequestCreateDto body
+            @Valid @RequestBody FriendRequestCreateDto body
     ) {
         UUID me = extractCustomerId();
         return friendshipService.sendRequest(me, body.targetCustomerId());

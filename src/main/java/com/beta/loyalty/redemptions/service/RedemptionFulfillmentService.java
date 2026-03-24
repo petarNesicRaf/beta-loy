@@ -42,7 +42,6 @@ public class RedemptionFulfillmentService {
                 rr.getCustomer().getId(),
                 rr.getStatus(),
                 rr.getPointsCostSnapshot(),
-//                rr.getRedemptionCode(),
                 rr.getRequestedAt(),
                 rr.getExpiresAt(),
                 rr.getApprovedAt(),

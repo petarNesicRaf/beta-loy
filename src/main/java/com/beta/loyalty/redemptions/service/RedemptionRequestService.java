@@ -7,7 +7,6 @@ import com.beta.loyalty.domain.enums.RewardStatus;
 import com.beta.loyalty.domain.redemption.RedemptionRequest;
 import com.beta.loyalty.domain.reward.Reward;
 import com.beta.loyalty.redemptions.dto.CreateRedemptionRequestDto;
-import com.beta.loyalty.redemptions.dto.RedemptionCodeHelper;
 import com.beta.loyalty.redemptions.dto.RedemptionRequestDto;
 import com.beta.loyalty.redemptions.repository.RedemptionRequestRepository;
 import com.beta.loyalty.rewards.rewards.RewardRepository;
@@ -57,7 +56,6 @@ public class RedemptionRequestService {
 
         rr.setCustomerNote(req.customerNote());
         rr.setIdempotencyKey(req.idempotencyKey());
-//        rr.setRedemptionCode(RedemptionCodeHelper.generate());
 
         redemptionRequestRepository.save(rr);
         return toDto(rr);

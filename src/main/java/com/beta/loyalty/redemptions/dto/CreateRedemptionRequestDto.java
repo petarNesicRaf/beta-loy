@@ -1,10 +1,13 @@
 package com.beta.loyalty.redemptions.dto;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 import java.util.UUID;
 
 public record CreateRedemptionRequestDto(
-        UUID rewardId,
+        @NotNull UUID rewardId,
         String idempotencyKey,
-        String customerNote
+        @Size(max = 500) String customerNote
 ) {
 }

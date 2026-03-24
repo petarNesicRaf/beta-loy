@@ -5,6 +5,7 @@ import com.beta.loyalty.redemptions.dto.CreateRedemptionRequestDto;
 import com.beta.loyalty.redemptions.dto.RedemptionRequestDto;
 import com.beta.loyalty.redemptions.service.RedemptionRequestService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,7 +13,7 @@ import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/customer/redemptions")
+@RequestMapping("/api/v1/customer/redemptions")
 @Tag(
         name = "Customer Redemption",
         description = "Ovo je controller za slanje request-a za nagradu flow za to je:\n" +
@@ -32,7 +33,7 @@ public class CustomerRedemptionController {
     @PostMapping("/venues/{venueId}/create")
     public RedemptionRequestDto create(
             @PathVariable UUID venueId,
-            @RequestBody CreateRedemptionRequestDto req
+            @Valid @RequestBody CreateRedemptionRequestDto req
     ) {
         UUID currUuid = CurrentUser.principal().get().userId();
         return redemptionRequestService.create(currUuid, venueId, req);

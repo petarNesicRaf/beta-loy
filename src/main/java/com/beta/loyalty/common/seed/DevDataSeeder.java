@@ -3,22 +3,34 @@ package com.beta.loyalty.common.seed;
 import com.beta.loyalty.auth.jwt.repo.CustomerAuthRepository;
 import com.beta.loyalty.domain.customer.Customer;
 import com.beta.loyalty.domain.enums.CustomerStatus;
-import com.beta.loyalty.friends.service.CustomerSearchService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
+/**
+ * Seeds customer accounts for local development.
+ *
+ * Credentials:
+ *   seeder@example.com         / Password123!
+ *   secondseed@gmail.com       / Password123!
+ *   ana.petrovic@example.com   / Password123!
+ *   marko.jovic@example.com    / Password123!
+ *   jelena.nikolic@example.com / Password123!
+ */
 @Component
+@Order(3)
 @RequiredArgsConstructor
 public class DevDataSeeder implements ApplicationRunner {
 
     private final CustomerAuthRepository customerAuthRepository;
     private final PasswordEncoder passwordEncoder;
-    private final CustomerSearchService customerSearchService;
 
     @Value("${app.seed.enabled:false}")
     private boolean enabled;
@@ -32,47 +44,35 @@ public class DevDataSeeder implements ApplicationRunner {
     @Value("${app.seed.customer.display-name:seeder}")
     private String seedDisplayName;
 
-    @Value("seederUsername")
-    private String username;
-
+    @Value("${app.seed.customer.username:seederUsername}")
+    private String seedUsername;
 
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
         if (!enabled) return;
 
-        seedCustomer();
-        // Later: seedTenants(); seedStaff(); seedRewards(); etc.
+        List.of(
+            new CustomerSeed(seedEmail,                   seedPassword, seedDisplayName, seedUsername),
+            new CustomerSeed("secondseed@gmail.com",       "Password123!", "User Two",    "user_two"),
+            new CustomerSeed("ana.petrovic@example.com",   "Password123!", "Ana Petrovic","ana_petrovic"),
+            new CustomerSeed("marko.jovic@example.com",    "Password123!", "Marko Jovic", "marko_jovic"),
+            new CustomerSeed("jelena.nikolic@example.com", "Password123!", "Jelena Nikolic","jelena_nikolic")
+        ).forEach(this::seedCustomer);
     }
-    private void seedCustomer() {
-        var existing = customerAuthRepository.findByEmailIgnoreCase(seedEmail);
-        if (existing.isPresent()) return;
+
+    private void seedCustomer(CustomerSeed seed) {
+        if (customerAuthRepository.findByEmailIgnoreCase(seed.email()).isPresent()) return;
 
         Customer c = new Customer();
-        c.setEmail(seedEmail);
-        c.setDisplayName(seedDisplayName);
+        c.setEmail(seed.email());
+        c.setDisplayName(seed.displayName());
+        c.setUsername(seed.username());
         c.setStatus(CustomerStatus.ACTIVE);
-        c.setUsername(username);
-        // For password-based testing only. OAuth customers can leave passwordHash null.
-        c.setPasswordHash(passwordEncoder.encode(seedPassword));
-
-        String seedSecondEmail = "secondseed@gmail.com";
-        var existingSecond = customerAuthRepository.findByEmailIgnoreCase(seedSecondEmail);
-        if (existingSecond.isPresent()) return;
-
-
-        Customer c1 = new Customer();
-        c1.setEmail(seedSecondEmail);
-        c1.setDisplayName("user2");
-        c1.setStatus(CustomerStatus.ACTIVE);
-        c1.setUsername("secondSeeder");
-        // For password-based testing only. OAuth customers can leave passwordHash null.
-        c1.setPasswordHash(passwordEncoder.encode("secondPassword123"));
-
-
+        c.setPasswordHash(passwordEncoder.encode(seed.password()));
         customerAuthRepository.save(c);
-        customerAuthRepository.save(c1);
-
-        System.out.println("[SEED] Created customer: " + seedEmail);
+        System.out.println("[SEED] Customer created: " + seed.email());
     }
+
+    private record CustomerSeed(String email, String password, String displayName, String username) {}
 }

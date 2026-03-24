@@ -26,9 +26,6 @@ public class StaffUser extends BaseEntity {
     @Column(length = 320)
     String email;
 
-    @Column(length = 40)
-    String phone;
-
     @Column(length = 255)
     String passwordHash;
 

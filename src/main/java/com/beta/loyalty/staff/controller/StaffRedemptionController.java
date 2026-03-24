@@ -7,6 +7,7 @@ import com.beta.loyalty.redemptions.service.RedemptionDecisionService;
 import com.beta.loyalty.redemptions.service.RedemptionFulfillmentService;
 import com.beta.loyalty.staff.service.StaffRedemptionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +31,7 @@ public class StaffRedemptionController {
     @PostMapping("/{id}/decide")
     public RedemptionRequestDto decide(
             @PathVariable UUID id,
-            @RequestBody DecideRedemptionRequest req
+            @Valid @RequestBody DecideRedemptionRequest req
     ) {
         UUID curr = CurrentUser.principal().get().userId();
 

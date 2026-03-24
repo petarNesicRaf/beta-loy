@@ -1,10 +1,13 @@
 package com.beta.loyalty.auth.jwt.config;
 
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "app.jwt")
-public record JwtProperties (
-        String issuer,
-        String secret,
+public record JwtProperties(
+        @NotBlank String issuer,
+        @NotBlank String secret,
         long accessTokenSeconds
-){}
+) {}

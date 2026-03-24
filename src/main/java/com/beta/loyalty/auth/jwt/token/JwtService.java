@@ -19,8 +19,14 @@ public class JwtService {
     private final String issuer;
     private final long accessTokenSeconds;
 
-    public JwtService(JwtProperties props){
-        this.key = Keys.hmacShaKeyFor(props.secret().getBytes(StandardCharsets.UTF_8));
+    public JwtService(JwtProperties props) {
+        byte[] secretBytes = props.secret().getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < 32) {
+            throw new IllegalStateException(
+                    "JWT_SECRET must be at least 32 characters (256 bits). " +
+                    "Current length: " + secretBytes.length + " bytes.");
+        }
+        this.key = Keys.hmacShaKeyFor(secretBytes);
         this.issuer = props.issuer();
         this.accessTokenSeconds = props.accessTokenSeconds();
     }

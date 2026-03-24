@@ -130,7 +130,6 @@ public class RedemptionDecisionService {
                 rr.getCustomer().getId(),
                 rr.getStatus(),
                 rr.getPointsCostSnapshot(),
-//                rr.getRedemptionCode(),
                 rr.getRequestedAt(),
                 rr.getExpiresAt(),
                 rr.getApprovedAt(),

@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 @Table(name = "venue_staff_assignments",
         uniqueConstraints = @UniqueConstraint(name = "ux_vsa_venue_staff", columnNames = {"venue_id", "staff_user_id"}))
 public class VenueStaffAssignment extends BaseEntity {
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "venue_id", nullable = false)
     Venue venue;
@@ -22,7 +23,7 @@ public class VenueStaffAssignment extends BaseEntity {
     StaffUser staffUser;
 
     @Column(nullable = false)
-    boolean isActive = true;
+    boolean active = true;
 
     @Column(nullable = false, columnDefinition = "timestamptz")
     OffsetDateTime assignedAt = OffsetDateTime.now();
