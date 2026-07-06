@@ -1,0 +1,835 @@
+================================================================================
+                        LOYALTY PLATFORM - FULL DOCUMENTATION
+================================================================================
+
+Project Name  : Loyalty
+Group         : com.beta
+Artifact      : loyalty
+Version       : 0.0.1-SNAPSHOT
+Java Version  : 17
+Framework     : Spring Boot 4.0.2
+Build Tool    : Maven
+
+
+================================================================================
+1. OVERVIEW
+================================================================================
+
+Loyalty is a multi-tenant loyalty points backend API built with Spring Boot.
+It allows businesses (Tenants) to manage their venues, define rewards, and let
+customers earn and redeem points by scanning fiscal receipts.
+
+Key capabilities:
+  - Multi-tenant architecture (Tenant -> Venue hierarchy)
+  - Customer authentication via email/password or Google OAuth (OIDC)
+  - Staff authentication via email/password
+  - Receipt scanning and claiming to earn loyalty points
+  - Reward catalogue per venue
+  - Customer redemption requests with staff approval/rejection workflow
+  - Customer social graph (friend requests, friendships)
+  - Points ledger with full transaction history
+  - Idempotent point earning and spending operations
+  - Swagger/OpenAPI documentation at /swagger-ui.html
+
+
+================================================================================
+2. TECHNOLOGY STACK
+================================================================================
+
+  - Spring Boot 4.0.2
+  - Spring Security (JWT-based, stateless)
+  - Spring Data JPA + Hibernate
+  - PostgreSQL (database)
+  - Flyway (database migrations)
+  - jjwt 0.11.5 (JWT token generation and validation)
+  - Google API Client (Google OIDC login)
+  - Springdoc OpenAPI 3.0.0 (Swagger UI)
+  - Lombok
+  - Spring Boot Validation (Jakarta Bean Validation)
+  - Spring Boot WebSocket (dependency present, not fully wired yet)
+  - BCrypt (password hashing)
+
+
+================================================================================
+3. CONFIGURATION
+================================================================================
+
+File: src/main/resources/application.properties
+
+--- Database ---
+  spring.datasource.url=jdbc:postgresql://localhost:5432/loyalty_db
+  spring.datasource.username=${DB_USERNAME}          (env variable)
+  spring.datasource.password=${DB_PASSWORD}          (env variable)
+  spring.jpa.hibernate.ddl-auto=create-drop          (recreates schema on startup)
+  spring.flyway.enabled=true
+  spring.flyway.locations=classpath:db/migration
+
+--- JWT ---
+  app.jwt.issuer=loyal
+  app.jwt.secret=${JWT_SECRET}                       (env variable)
+  app.jwt.access-token-seconds=3600                  (1 hour token lifetime)
+
+--- Google OAuth ---
+  auth.google.client-id=887682240217-...             (Google Client ID for ID token verification)
+
+--- Seeder (dev data) ---
+  app.seed.enabled=true
+  app.seed.customer.email=seeder@example.com
+  app.seed.customer.password=Password123!
+  app.seed.customer.display-name=seeder
+  app.seed.customer.username=seederUsername
+
+--- Swagger ---
+  springdoc.swagger-ui.path=/swagger-ui.html
+
+Required environment variables:
+  DB_USERNAME   - PostgreSQL username
+  DB_PASSWORD   - PostgreSQL password
+  JWT_SECRET    - Secret key for signing JWT tokens
+
+
+================================================================================
+4. PROJECT STRUCTURE
+================================================================================
+
+src/main/java/com/beta/loyalty/
+  |
+  +-- LoyaltyApplication.java              -- Spring Boot entry point
+  |
+  +-- auth/                                -- Authentication module
+  |     +-- controller/AuthController      -- REST endpoints for login
+  |     +-- service/AuthService            -- Login logic (customer/staff/Google)
+  |     +-- jwt/
+  |     |     +-- config/JwtProperties     -- JWT config properties binding
+  |     |     +-- config/SecurityConfig    -- Spring Security filter chain
+  |     |     +-- dto/LoginRequest         -- Login request DTO
+  |     |     +-- repo/CustomerAuthRepository
+  |     |     +-- repo/StaffAuthRepository
+  |     |     +-- token/JwtService         -- Token minting and parsing
+  |     |     +-- token/JwtAuthFilter      -- JWT filter (per-request)
+  |     +-- oauth/
+  |           +-- google/GoogleIdTokenVerifierService  -- Verifies Google ID tokens
+  |           +-- google/GoogleLoginRequest
+  |           +-- repo/CustomerIdentityRepository
+  |           +-- OauthProvider            -- Enum: GOOGLE
+  |           +-- VerifiedOidcUser
+  |     +-- AuthPrincipal                  -- Authenticated principal record
+  |     +-- CurrentUser                    -- Static helper to get current principal
+  |     +-- TokenResponse                  -- JWT token response DTO
+  |     +-- UserType                       -- Enum: CUSTOMER, STAFF
+  |
+  +-- domain/                              -- JPA entity domain model
+  |     +-- base/BaseEntity               -- UUID id, createdAt, updatedAt
+  |     +-- customer/
+  |     |     +-- Customer
+  |     |     +-- CustomerFriendship
+  |     |     +-- CustomerIdentity
+  |     +-- points/
+  |     |     +-- PointsAccount
+  |     |     +-- PointsLedgerEntry
+  |     |     +-- PointsRule
+  |     +-- receipt/
+  |     |     +-- Receipt
+  |     |     +-- ReceiptClaim
+  |     |     +-- ReceiptClaimAllocation
+  |     +-- redemption/
+  |     |     +-- RedemptionRequest
+  |     |     +-- RedemptionDecision
+  |     +-- reward/
+  |     |     +-- Reward
+  |     +-- staff/
+  |     |     +-- StaffUser
+  |     |     +-- Role
+  |     |     +-- VenueStaffAssignment
+  |     +-- tenant/
+  |     |     +-- Tenant
+  |     |     +-- TenantOwnedEntity
+  |     +-- venue/
+  |     |     +-- Venue
+  |     +-- enums/                         -- All enumerations (see section 6)
+  |
+  +-- customer/                            -- Customer profile module
+  |     +-- controller/CustomerController
+  |     +-- service/CustomerService
+  |     +-- repository/CustomerRepository
+  |     +-- dto/CustomerMeResponse
+  |     +-- dto/CustomerVenuePointsAccount
+  |
+  +-- friends/                             -- Social/friends module
+  |     +-- controller/MeFriendsController
+  |     +-- service/FriendshipService
+  |     +-- service/CustomerSearchService
+  |     +-- repository/CustomerFriendshipRepository
+  |     +-- dto/FriendshipDto
+  |     +-- dto/FriendRequestCreateDto
+  |     +-- dto/CustomerSearchItemDto
+  |     +-- dto/FriendshipPair
+  |
+  +-- points/                              -- Points engine module
+  |     +-- service/PointsService
+  |     +-- repository/PointsAccountRepository
+  |     +-- repository/PointsLedgerEntryRepository
+  |
+  +-- receipts/                            -- Receipt claim module
+  |     +-- controller/ReceiptClaimController
+  |     +-- service/ReceiptClaimService
+  |     +-- service/ReceiptHashing
+  |     +-- repository/ReceiptRepository
+  |     +-- repository/ReceiptClaimRepository
+  |     +-- dto/ReceiptClaimRequest
+  |     +-- dto/ReceiptClaimResponse
+  |
+  +-- redemptions/                         -- Redemption request module
+  |     +-- controller/CustomerRedemptionController
+  |     +-- service/RedemptionRequestService
+  |     +-- service/RedemptionDecisionService
+  |     +-- service/RedemptionFulfillmentService
+  |     +-- repository/RedemptionRequestRepository
+  |     +-- dto/CreateRedemptionRequestDto
+  |     +-- dto/DecideRedemptionRequest
+  |     +-- dto/RedemptionRequestDto
+  |
+  +-- rewards/                             -- Rewards catalogue module
+  |     +-- rewards/RewardRepository
+  |     +-- dto/RewardPublicResponse
+  |
+  +-- staff/                               -- Staff-side module
+  |     +-- controller/StaffRedemptionController
+  |     +-- service/StaffRedemptionService
+  |     +-- repository/StaffUserRepository
+  |     +-- repository/RoleRepository
+  |
+  +-- tenants/                             -- Tenant module
+  |     +-- repository/TenantRepository
+  |
+  +-- venues/                              -- Venue module
+  |     +-- controller/CustomerVenueController
+  |     +-- service/CustomerVenueService
+  |     +-- repository/VenueRepository
+  |     +-- repository/VenueStaffAssignmentRepository
+  |     +-- dto/VenuePublicResponse
+  |     +-- dto/VenueDetailsResponse
+  |     +-- dto/VenueDetailsWithRewardResponse
+  |
+  +-- common/
+        +-- config/AppConfig               -- Bean definitions (e.g. RestTemplate)
+        +-- config/OpenApiConfig           -- Swagger/OpenAPI configuration
+        +-- config/SwaggerResourceConfig
+        +-- exceptions/
+        |     +-- GlobalExceptionHandler   -- @ControllerAdvice error handler
+        |     +-- NotFoundException
+        |     +-- UnauthorizedException
+        +-- seed/
+              +-- DevDataSeeder           -- Seeds test customer on startup
+              +-- StaffSeeder            -- Seeds test staff user on startup
+              +-- TenantVenueSeeder      -- Seeds test tenant and venue on startup
+              +-- PointsSeeder           -- Seeds points data on startup
+
+
+================================================================================
+5. DATA MODEL
+================================================================================
+
+--- Tenant ---
+  Table: tenants
+  Fields: id (UUID), name, legalName, pib, status (TenantStatus)
+  Relations:
+    - Has many Venues
+    - Has many StaffUsers
+
+--- Venue ---
+  Table: venues
+  Fields: id, tenant_id, name, pib, address, city, country, timezone,
+          status (VenueStatus), type (VenueType)
+  Relations:
+    - Belongs to Tenant
+    - Has many VenueStaffAssignments
+    - Has many Rewards
+    - Has many Receipts
+    - Has many PointsRules
+
+--- Customer ---
+  Table: customers
+  Indexes: username, displayName
+  Fields: id, email, username (unique), phone, displayName, passwordHash,
+          status (CustomerStatus)
+  Relations:
+    - Has many PointsAccounts (one per venue)
+    - Has many ReceiptClaims (initiated)
+    - Has many RedemptionRequests
+
+--- CustomerIdentity ---
+  Table: customer_identities
+  Used for OAuth. Fields: id, customer_id, provider (GOOGLE), providerSubject, email
+
+--- CustomerFriendship ---
+  Table: customer_friendships
+  Unique: (customer_a_id, customer_b_id)
+  Fields: id, customer_a_id, customer_b_id, status (FriendshipStatus),
+          requested_by_customer_id, respondedAt
+
+--- StaffUser ---
+  Table: staff_users
+  Fields: id, tenant_id, email, passwordHash, status (StaffStatus), lastLoginAt
+  Relations:
+    - Belongs to Tenant
+    - Has many VenueStaffAssignments
+    - Has many Roles (ManyToMany via staff_user_roles)
+
+--- Role ---
+  Table: roles
+  Used for RBAC. Role names map to Spring Security ROLE_* authorities.
+
+--- VenueStaffAssignment ---
+  Table: venue_staff_assignments
+  Assigns a StaffUser to a Venue.
+
+--- PointsRule ---
+  Table: points_rule
+  Fields: id, venue_id, baseFactor, roundingMode, claimWindowMinutes (default 1440),
+          maxRecipientsPerReceipt (default 6), activeFrom, activeTo
+
+--- PointsAccount ---
+  Table: points_accounts
+  Unique: (customer_id, venue_id)
+  Fields: id, customer_id, venue_id, currentBalance (long), version (optimistic lock)
+  Relations:
+    - Belongs to Customer
+    - Belongs to Venue
+    - Has many PointsLedgerEntries
+
+--- PointsLedgerEntry ---
+  Table: points_ledger_entries
+  Unique: (source_type, source_id, customer_id)  -- ensures idempotency
+  Fields: id, points_account_id, venue_id, customer_id, type (LedgerType),
+          pointsDelta, sourceType (LedgerSourceType), sourceId (UUID)
+  This table is the immutable audit log of all points transactions.
+
+--- Receipt ---
+  Table: receipts
+  Unique: (venue_id, receipt_hash)  -- prevents duplicate receipt scans
+  Fields: id, venue_id, pib, externalReceiptId, receiptHash, issuedAt, amount,
+          currency, status (ReceiptStatus)
+
+--- ReceiptClaim ---
+  Table: receipt_claims
+  Unique: (receipt_id)  -- one claim per physical receipt
+  Fields: id, venue_id, receipt_id, initiator_customer_id, status (ReceiptClaimStatus),
+          calculatedPointsTotal, finalizedAt
+  Relations:
+    - Has many ReceiptClaimAllocations
+
+--- ReceiptClaimAllocation ---
+  Table: receipt_claim_allocations
+  Unique: (receipt_claim_id, recipient_customer_id)
+  Fields: id, receipt_claim_id, recipient_customer_id, shareType (ShareType),
+          shareValue, allocatedPoints, status (AllocationStatus), respondedAt
+  Used for future split-bill / group point sharing.
+
+--- Reward ---
+  Table: rewards
+  Fields: id, venue_id, name, description, pointsCost, status (RewardStatus),
+          validFrom, validTo, stock, perCustomerLimitPerDay
+  Relations:
+    - Belongs to Venue
+    - Has many RedemptionRequests
+
+--- RedemptionRequest ---
+  Table: redemption_requests
+  Unique: (customer_id, idempotency_key)
+  Index: (venue_id, status)
+  Fields: id, venue_id, customer_id, reward_id, pointsCostSnapshot,
+          status (RedemptionStatus), requestedAt, expiresAt (now + 5 min),
+          approvedAt, rejectedAt, fulfilledAt, customerNote, idempotencyKey, version
+  Relations:
+    - Has one RedemptionDecision
+
+--- RedemptionDecision ---
+  Table: redemption_decisions
+  Linked one-to-one with RedemptionRequest.
+  Stores the staff decision (APPROVED / REJECTED) and who made it.
+
+
+================================================================================
+6. ENUMERATIONS
+================================================================================
+
+  AllocationStatus   : PENDING, ACCEPTED, DECLINED
+  CustomerStatus     : ACTIVE, DISABLED
+  DecisionType       : APPROVED, REJECTED
+  FriendshipStatus   : PENDING, ACCEPTED, DECLINED, CANCELLED
+  LedgerSourceType   : RECEIPT_CLAIM, REDEMPTION_REQUEST
+  LedgerType         : EARN, DEBIT
+  ReceiptClaimStatus : PENDING_SPLIT_ACCEPTANCE, FINALIZED
+  ReceiptStatus      : VALID, VOIDED
+  RedemptionStatus   : PENDING, APPROVED, REJECTED, FULFILLED, EXPIRED
+  RewardStatus       : ACTIVE, INACTIVE, ARCHIVED
+  RoundingMode       : FLOOR, CEIL, HALF_UP
+  ShareType          : EQUAL, CUSTOM
+  StaffStatus        : ACTIVE, DISABLED
+  TenantStatus       : ACTIVE, SUSPENDED
+  VenueStatus        : ACTIVE, INACTIVE
+  VenueType          : DEFAULT
+
+
+================================================================================
+7. SECURITY
+================================================================================
+
+Authentication is stateless JWT-based (no sessions).
+
+Token type: Bearer JWT
+Token lifetime: 3600 seconds (1 hour)
+Token payload contains: userId, userType (CUSTOMER/STAFF), tenantId (staff only), roles
+
+JWT filter (JwtAuthFilter) runs before UsernamePasswordAuthenticationFilter on
+every request, extracts and validates the token, and sets the SecurityContext.
+
+Public endpoints (no token required):
+  POST /api/v1/auth/**
+  GET  /api/v1/venues/**
+  GET  /v3/api-docs/**
+  GET  /swagger-ui/**
+  GET  /swagger-ui.html
+
+Protected endpoints:
+  /api/v1/customer/**  -> requires ROLE_CUSTOMER
+  /api/v1/staff/**     -> requires ROLE_STAFF
+
+Password encoding: BCrypt
+
+Staff roles are stored in the database (Role entities), fetched on login, and
+included in the JWT as ROLE_<NAME> strings. ROLE_STAFF is always added as a
+base role for all staff users.
+
+Google login flow:
+  1. Frontend obtains a Google ID token
+  2. Sends it to POST /api/v1/auth/google
+  3. Backend verifies the token with GoogleIdTokenVerifierService
+  4. Finds or creates the Customer + CustomerIdentity record
+  5. Returns a JWT token
+
+
+================================================================================
+8. REST API ENDPOINTS
+================================================================================
+
+Base URL: /api/v1
+Swagger UI: http://localhost:8080/swagger-ui.html
+
+--------------------------------------------------------------------------------
+8.1 AUTH  (/api/v1/auth)
+--------------------------------------------------------------------------------
+
+POST /api/v1/auth/google
+  Description : Login or register a customer via Google ID token
+  Auth        : None
+  Body        : { "idToken": "<google_id_token>" }
+  Response    : TokenResponse
+
+POST /api/v1/auth/customer/login
+  Description : Login a customer with email/phone and password
+  Auth        : None
+  Body        : { "identifier": "email_or_phone", "password": "..." }
+  Response    : TokenResponse
+
+POST /api/v1/auth/staff/login
+  Description : Login a staff user with email/phone and password
+  Auth        : None
+  Body        : { "identifier": "email_or_phone", "password": "..." }
+  Response    : TokenResponse
+
+TokenResponse fields:
+  token, tokenType ("Bearer"), expiresInSeconds, userId, userType, tenantId, roles
+
+--------------------------------------------------------------------------------
+8.2 CUSTOMER PROFILE  (/api/v1/customer)
+--------------------------------------------------------------------------------
+
+GET /api/v1/customer/me
+  Description : Get the currently authenticated customer's profile
+  Auth        : ROLE_CUSTOMER
+  Response    : CustomerMeResponse { id, email, username, displayName, status }
+
+GET /api/v1/customer/points-per-venue
+  Description : Get the customer's points balance for each venue
+  Auth        : ROLE_CUSTOMER
+  Response    : List<CustomerVenuePointsAccount> { venueId, venueName, balance }
+
+--------------------------------------------------------------------------------
+8.3 VENUES  (/api/v1/customer/venues)
+--------------------------------------------------------------------------------
+
+GET /api/v1/customer/venues
+  Description : Paginated list of all active venues
+  Auth        : None (public)
+  Params      : page, size, sort (Pageable)
+  Response    : Page<VenuePublicResponse>
+
+GET /api/v1/customer/venues/search?q=<query>
+  Description : Search venues by name
+  Auth        : None (public)
+  Response    : List<VenuePublicResponse>
+
+GET /api/v1/customer/venues/{venueId}/rewards
+  Description : Get venue details including its active rewards
+  Auth        : None (public)
+  Response    : VenueDetailsWithRewardResponse { venue info, rewards list }
+
+--------------------------------------------------------------------------------
+8.4 RECEIPT CLAIMS  (/api/v1/customer/receipts)
+--------------------------------------------------------------------------------
+
+POST /api/v1/customer/receipts/claim
+  Description : Claim a fiscal receipt to earn loyalty points.
+                MVP: 1 point per 100 currency units (floor rounding).
+                The receipt hash is computed from (venueId, externalReceiptId,
+                qrRaw, issuedAt, amount, currency) using SHA-256.
+                Idempotent: re-claiming the same receipt returns previous result.
+                PIB on the receipt must match the venue's PIB.
+  Auth        : ROLE_CUSTOMER
+  Body        :
+    {
+      "venueId"           : "UUID",
+      "pib"               : "12345678",
+      "externalReceiptId" : "optional string",
+      "qrRaw"             : "optional raw QR string",
+      "issuedAt"          : "2025-01-01T12:00:00Z",
+      "amount"            : 1500.00,
+      "currency"          : "RSD"
+    }
+  Response    : ReceiptClaimResponse { receiptId, claimId, status, pointsAwarded }
+
+Points calculation (MVP):
+  points = floor(amount / 100)
+  Example: 1500 RSD -> 15 points
+
+--------------------------------------------------------------------------------
+8.5 CUSTOMER REDEMPTIONS  (/api/v1/customer/redemptions)
+--------------------------------------------------------------------------------
+
+POST /api/v1/customer/redemptions/venues/{venueId}/create
+  Description : Create a PENDING redemption request for a reward at a venue.
+                Points are NOT deducted yet at this stage.
+                Request expires in 5 minutes.
+                Supports idempotency key to prevent duplicate requests.
+  Auth        : ROLE_CUSTOMER
+  Body        :
+    {
+      "rewardId"       : "UUID",
+      "customerNote"   : "optional note for staff",
+      "idempotencyKey" : "optional client-generated unique key"
+    }
+  Response    : RedemptionRequestDto
+
+RedemptionRequestDto fields:
+  id, venueId, rewardId, customerId, status, pointsCostSnapshot,
+  requestedAt, expiresAt, approvedAt, rejectedAt, fulfilledAt
+
+--------------------------------------------------------------------------------
+8.6 STAFF REDEMPTIONS  (/api/v1/staff/redemptions)
+--------------------------------------------------------------------------------
+
+GET /api/v1/staff/redemptions/{venueId}/redemptions/pending
+  Description : List all PENDING redemption requests for a venue.
+                Staff should poll this endpoint every 3-5 seconds.
+  Auth        : ROLE_STAFF
+  Response    : List<RedemptionRequestDto>
+
+POST /api/v1/staff/redemptions/{id}/decide
+  Description : Staff approves or rejects a redemption request.
+                On APPROVE, points are debited from the customer's account.
+  Auth        : ROLE_STAFF
+  Body        :
+    {
+      "decision" : "APPROVED" | "REJECTED",
+      "note"     : "optional staff note"
+    }
+  Response    : RedemptionRequestDto
+
+POST /api/v1/staff/redemptions/{id}/fulfill
+  Description : Mark an APPROVED redemption as FULFILLED (reward physically given).
+  Auth        : ROLE_STAFF
+  Response    : RedemptionRequestDto
+
+--------------------------------------------------------------------------------
+8.7 FRIENDS  (/api/v1/customer/me/friends)
+--------------------------------------------------------------------------------
+
+GET /api/v1/customer/me/friends/search?q=<username>
+  Description : Search for customers by username to add as friends
+  Auth        : ROLE_CUSTOMER
+  Params      : q (search query), page, size (Pageable, default size 20)
+  Response    : Page<CustomerSearchItemDto>
+
+POST /api/v1/customer/me/friends/requests
+  Description : Send a friend request to another customer
+  Auth        : ROLE_CUSTOMER
+  Body        : { "targetCustomerId": "UUID" }
+  Response    : FriendshipDto
+
+POST /api/v1/customer/me/friends/requests/{friendshipId}/accept
+  Description : Accept an incoming friend request
+  Auth        : ROLE_CUSTOMER
+  Response    : FriendshipDto
+
+POST /api/v1/customer/me/friends/requests/{friendshipId}/decline
+  Description : Decline an incoming friend request
+  Auth        : ROLE_CUSTOMER
+  Response    : FriendshipDto
+
+POST /api/v1/customer/me/friends/requests/{friendshipId}/cancel
+  Description : Cancel an outgoing friend request you sent
+  Auth        : ROLE_CUSTOMER
+  Response    : FriendshipDto
+
+GET /api/v1/customer/me/friends/accepted
+  Description : List all accepted (confirmed) friends
+  Auth        : ROLE_CUSTOMER
+  Params      : page, size (Pageable, default size 20)
+  Response    : Page<FriendshipDto>
+
+GET /api/v1/customer/me/friends/requests/incoming
+  Description : List all pending incoming friend requests
+  Auth        : ROLE_CUSTOMER
+  Response    : Page<FriendshipDto>
+
+GET /api/v1/customer/me/friends/requests/outgoing
+  Description : List all pending outgoing friend requests you sent
+  Auth        : ROLE_CUSTOMER
+  Response    : Page<FriendshipDto>
+
+
+================================================================================
+9. CORE BUSINESS FLOWS
+================================================================================
+
+--------------------------------------------------------------------------------
+9.1 Receipt Claim Flow (Earning Points)
+--------------------------------------------------------------------------------
+
+1. Customer scans a fiscal receipt (or submits receipt data manually).
+2. POST /api/v1/customer/receipts/claim with receipt details.
+3. Service validates:
+     a. Amount > 0, currency present, issuedAt present, venueId present, PIB present
+     b. Receipt PIB matches the venue's configured PIB
+4. SHA-256 receipt hash is computed to deduplicate physical receipts.
+5. Receipt row is created (or found if already exists) with pessimistic lock.
+6. ReceiptClaim row is created (or found if already exists) for this customer+receipt.
+7. If claim already finalized, return previous result (idempotent).
+8. Points calculated: floor(amount / 100).
+9. ReceiptClaim status set to FINALIZED immediately (MVP auto-approval).
+10. PointsService.earn() called:
+     a. Idempotency check on ledger (sourceType=RECEIPT_CLAIM, sourceId=claimId)
+     b. PointsAccount locked or created for (customer, venue)
+     c. PointsLedgerEntry (EARN) inserted
+     d. PointsAccount.currentBalance incremented
+11. Response returned with points awarded.
+
+Concurrency safety:
+  - Unique constraint on (venue_id, receipt_hash) prevents double-receipt
+  - Unique constraint on (source_type, source_id, customer_id) prevents double-earn
+  - Pessimistic locking (SELECT FOR UPDATE) on PointsAccount prevents race conditions
+
+--------------------------------------------------------------------------------
+9.2 Redemption Flow (Spending Points)
+--------------------------------------------------------------------------------
+
+Step 1 - Customer creates request:
+  POST /api/v1/customer/redemptions/venues/{venueId}/create
+  - Validates reward is ACTIVE and within validFrom/validTo window
+  - Creates RedemptionRequest with status=PENDING, expires in 5 minutes
+  - Points are NOT yet deducted
+  - Idempotency key prevents duplicate requests
+
+Step 2 - Staff polls for pending requests:
+  GET /api/v1/staff/redemptions/{venueId}/redemptions/pending
+  (poll every 3-5 seconds)
+
+Step 3 - Staff decides:
+  POST /api/v1/staff/redemptions/{id}/decide
+  - APPROVED: PointsService.debitForRedemption() called, points deducted, status=APPROVED
+  - REJECTED: status=REJECTED, no points deducted
+  - Decision is recorded in RedemptionDecision entity
+
+Step 4 - Staff fulfills (reward physically given):
+  POST /api/v1/staff/redemptions/{id}/fulfill
+  - Status changes to FULFILLED, fulfilledAt timestamp set
+
+--------------------------------------------------------------------------------
+9.3 Friendship Flow
+--------------------------------------------------------------------------------
+
+1. Customer searches for another customer by username:
+   GET /api/v1/customer/me/friends/search?q=<username>
+
+2. Sends friend request:
+   POST /api/v1/customer/me/friends/requests
+   { "targetCustomerId": "UUID" }
+   -> Creates CustomerFriendship with status=PENDING
+
+3. Target customer sees incoming request:
+   GET /api/v1/customer/me/friends/requests/incoming
+
+4. Target accepts or declines:
+   POST /api/v1/customer/me/friends/requests/{id}/accept  -> status=ACCEPTED
+   POST /api/v1/customer/me/friends/requests/{id}/decline -> status=DECLINED
+
+5. Requester can cancel before it is accepted:
+   POST /api/v1/customer/me/friends/requests/{id}/cancel  -> status=CANCELLED
+
+Note: Friendship is stored as a canonical pair (customer_a_id < customer_b_id)
+to avoid duplicates regardless of who sent the request.
+
+
+================================================================================
+10. POINTS ENGINE
+================================================================================
+
+PointsAccount:
+  One per (customer, venue) pair. Stores the running balance.
+  Uses optimistic locking (version field) + pessimistic lock (SELECT FOR UPDATE)
+  when mutating.
+
+PointsLedgerEntry:
+  Immutable append-only log of every transaction.
+  Unique constraint on (source_type, source_id, customer_id) ensures every
+  logical event can only be recorded once -> full idempotency.
+
+LedgerType:
+  EARN  - points added (e.g. from a receipt claim)
+  DEBIT - points removed (e.g. redemption approved)
+
+LedgerSourceType:
+  RECEIPT_CLAIM      - source is a ReceiptClaim.id
+  REDEMPTION_REQUEST - source is a RedemptionRequest.id
+
+Balance update algorithm:
+  newBalance = currentBalance + delta
+  If newBalance < 0 -> IllegalStateException("Insufficient points")
+  Ledger entry inserted -> balance updated atomically in the same transaction.
+
+
+================================================================================
+11. MULTI-TENANCY
+================================================================================
+
+The platform supports multiple businesses (Tenants), each with multiple Venues.
+
+TenantOwnedEntity is a base class for entities that belong to a tenant.
+It adds a tenant_id column that links records to their owning tenant.
+
+Entities that extend TenantOwnedEntity:
+  - PointsLedgerEntry
+  - Receipt
+  - ReceiptClaim
+  - RedemptionRequest
+
+Staff users are always scoped to a single Tenant (tenant_id stored in JWT).
+Customers are global (not tenant-scoped) but earn points per Venue.
+
+
+================================================================================
+12. ERROR HANDLING
+================================================================================
+
+GlobalExceptionHandler (@ControllerAdvice) catches exceptions and returns
+structured JSON error responses.
+
+Custom exceptions:
+  NotFoundException     -> HTTP 404
+  UnauthorizedException -> HTTP 401
+
+Standard validation errors (bean validation) return HTTP 400 with field details.
+
+Error response format:
+  { "status": 4xx, "error": "...", "message": "...", "path": "..." }
+
+
+================================================================================
+13. DEV DATA SEEDING
+================================================================================
+
+On startup (when app.seed.enabled=true), the following seeders run:
+
+TenantVenueSeeder:
+  Creates a test Tenant and one Venue under it (if not already present).
+
+StaffSeeder:
+  Creates a test StaffUser with STAFF role under the seeded Tenant.
+
+DevDataSeeder:
+  Creates a test Customer with email/password credentials.
+  Default: email=seeder@example.com, password=Password123!
+
+PointsSeeder:
+  Seeds some initial points data for the test customer.
+
+
+================================================================================
+14. HOW TO RUN
+================================================================================
+
+Prerequisites:
+  - Java 17+
+  - Maven
+  - PostgreSQL running at localhost:5432 with database "loyalty_db"
+
+Environment variables to set:
+  DB_USERNAME=<your_db_user>
+  DB_PASSWORD=<your_db_password>
+  JWT_SECRET=<a_long_random_secret_string>
+
+Build and run:
+  ./mvnw spring-boot:run
+
+Or build JAR and run:
+  ./mvnw clean package
+  java -jar target/loyalty-0.0.1-SNAPSHOT.jar
+
+The application will:
+  1. Run Flyway migrations (from classpath:db/migration)
+  2. Recreate the schema (ddl-auto=create-drop)
+  3. Seed dev data (if app.seed.enabled=true)
+  4. Start on port 8080 by default
+
+Swagger UI: http://localhost:8080/swagger-ui.html
+API Docs:   http://localhost:8080/v3/api-docs
+
+
+================================================================================
+15. NOTES AND KNOWN LIMITATIONS
+================================================================================
+
+- ddl-auto=create-drop means the database schema is dropped and recreated on
+  every restart. This is a development setting. Change to "validate" or "none"
+  for production and rely solely on Flyway.
+
+- Receipt scanning is currently simulated (no real QR scanner integration).
+  The client sends receipt data in the request body.
+
+- Points calculation rule is MVP hardcoded (1 point per 100 currency units).
+  The PointsRule entity exists in the data model for future configurable rules
+  but is not yet wired into the calculation.
+
+- WebSocket dependency is included but not yet fully configured.
+  Intended for real-time staff notifications of incoming redemption requests.
+
+- Split-bill / group receipt claim (ReceiptClaimAllocation) is modelled in the
+  database but the sharing flow is not yet implemented in the API.
+  Currently all receipts are claimed individually (claimIndividual).
+
+- Staff authentication lookup supports both email and phone (by convention:
+  if identifier contains "@" -> email lookup, else -> phone lookup).
+  Same pattern applies to customer login.
+
+- Google OAuth client ID is hardcoded in application.properties.
+  Move to an environment variable for production.
+
+- The google client ID in application.properties is currently embedded in the
+  properties file. Treat it as a non-secret (public client IDs are safe to
+  embed in frontend apps) but verify this for your deployment context.
+
+================================================================================
+                              END OF DOCUMENTATION
+================================================================================
