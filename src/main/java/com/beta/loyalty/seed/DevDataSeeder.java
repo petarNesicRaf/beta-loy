@@ -1,6 +1,6 @@
 package com.beta.loyalty.seed;
 
-import com.beta.loyalty.repository.CustomerAuthRepository;
+import com.beta.loyalty.repository.auth.CustomerAuthRepository;
 import com.beta.loyalty.domain.Customer;
 import com.beta.loyalty.domain.enums.CustomerStatus;
 import jakarta.transaction.Transactional;

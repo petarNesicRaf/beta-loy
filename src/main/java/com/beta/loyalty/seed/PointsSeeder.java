@@ -1,12 +1,12 @@
 package com.beta.loyalty.seed;
 
-import com.beta.loyalty.repository.CustomerAuthRepository;
+import com.beta.loyalty.repository.auth.CustomerAuthRepository;
 import com.beta.loyalty.domain.enums.LedgerSourceType;
 import com.beta.loyalty.domain.Tenant;
 import com.beta.loyalty.domain.Venue;
-import com.beta.loyalty.service.PointsService;
-import com.beta.loyalty.repository.TenantRepository;
-import com.beta.loyalty.repository.VenueRepository;
+import com.beta.loyalty.service.points.PointsService;
+import com.beta.loyalty.repository.tenant.TenantRepository;
+import com.beta.loyalty.repository.venue.VenueRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
