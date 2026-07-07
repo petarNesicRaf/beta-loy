@@ -35,11 +35,11 @@ public class RedemptionRequestService {
         Reward reward = rewardRepository.findByIdAndVenueId(req.rewardId(), venueId)
                 .orElseThrow(() -> new IllegalArgumentException("Reward not found for venue"));
 
-        if (reward.getStatus() != RewardStatus.ACTIVE) throw new IllegalStateException("Reward not active");
+        if (reward.getStatus() != RewardStatus.ACTIVE) throw new com.beta.loyalty.exception.ConflictException("Reward not active");
 
         OffsetDateTime now = OffsetDateTime.now();
-        if (reward.getValidFrom() != null && now.isBefore(reward.getValidFrom())) throw new IllegalStateException("Reward not started");
-        if (reward.getValidTo() != null && now.isAfter(reward.getValidTo())) throw new IllegalStateException("Reward expired");
+        if (reward.getValidFrom() != null && now.isBefore(reward.getValidFrom())) throw new com.beta.loyalty.exception.ConflictException("Reward not started");
+        if (reward.getValidTo() != null && now.isAfter(reward.getValidTo())) throw new com.beta.loyalty.exception.ConflictException("Reward expired");
 
         Customer customerRef = customerRepository.getReferenceById(customerId);
 

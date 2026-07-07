@@ -25,11 +25,11 @@ public class RedemptionFulfillmentService {
                 .orElseThrow(() -> new IllegalArgumentException("RedemptionRequest not found"));
 
         if (!staffAssignmentRepository.existsByStaffUserIdAndVenueIdAndActiveTrue(staffUserId, rr.getVenue().getId())) {
-            throw new SecurityException("Staff not assigned to venue");
+            throw new com.beta.loyalty.exception.ForbiddenException("Staff not assigned to venue");
         }
 
         if (rr.getStatus() != RedemptionStatus.APPROVED) {
-            throw new IllegalStateException("Can only fulfill approved request");
+            throw new com.beta.loyalty.exception.ConflictException("Can only fulfill approved request");
         }
 
         rr.setStatus(RedemptionStatus.FULFILLED);

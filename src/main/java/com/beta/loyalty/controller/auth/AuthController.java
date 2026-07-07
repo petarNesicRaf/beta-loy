@@ -1,9 +1,11 @@
 package com.beta.loyalty.controller.auth;
 
 import com.beta.loyalty.dto.auth.LoginRequest;
+import com.beta.loyalty.dto.auth.RefreshRequest;
 import com.beta.loyalty.dto.auth.TokenResponse;
 import com.beta.loyalty.dto.auth.GoogleLoginRequest;
 import com.beta.loyalty.service.auth.AuthService;
+import com.beta.loyalty.service.auth.RefreshTokenService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.AllArgsConstructor;
 import org.springframework.validation.annotation.Validated;
@@ -23,6 +25,7 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/google")
     public TokenResponse google(@Valid @RequestBody GoogleLoginRequest req) {
@@ -37,5 +40,10 @@ public class AuthController {
     @PostMapping("/staff/login")
     public TokenResponse staffLogin(@Valid @RequestBody LoginRequest request) {
         return authService.staffLogin(request);
+    }
+
+    @PostMapping("/refresh")
+    public TokenResponse refresh(@Valid @RequestBody RefreshRequest req) {
+        return refreshTokenService.rotate(req.refreshToken());
     }
 }

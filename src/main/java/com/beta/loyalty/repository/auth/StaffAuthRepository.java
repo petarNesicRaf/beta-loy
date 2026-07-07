@@ -8,5 +8,4 @@ import java.util.UUID;
 
 public interface StaffAuthRepository extends JpaRepository<StaffUser, UUID> {
     Optional<StaffUser> findByEmailIgnoreCase(String email);
-    Optional<StaffUser> findByPhone(String phone);
 }

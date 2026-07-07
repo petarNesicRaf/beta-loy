@@ -7,7 +7,8 @@ import com.beta.loyalty.domain.enums.FriendshipStatus;
 import com.beta.loyalty.dto.friends.FriendshipDto;
 import com.beta.loyalty.dto.friends.FriendshipPair;
 import com.beta.loyalty.repository.friends.CustomerFriendshipRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.beta.loyalty.exception.ConflictException;
+import com.beta.loyalty.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,9 +31,9 @@ public class FriendshipService {
         if (me.equals(targetCustomerId)) throw new IllegalArgumentException("Cannot friend yourself");
 
         Customer meEntity = customerRepository.findById(me)
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found: me"));
+                .orElseThrow(() -> new NotFoundException("Customer not found: me"));
         Customer target = customerRepository.findById(targetCustomerId)
-                .orElseThrow(() -> new EntityNotFoundException("Customer not found: target"));
+                .orElseThrow(() -> new NotFoundException("Customer not found: target"));
 
         FriendshipPair.Pair pair = FriendshipPair.canonical(me, targetCustomerId);
 
@@ -48,7 +49,7 @@ public class FriendshipService {
                 return toDto(me, existing);
             }
             if (existing.getStatus() == FriendshipStatus.BLOCKED) {
-                throw new IllegalStateException("Friendship is blocked");
+                throw new ConflictException("Friendship is blocked");
             }
 
             // For DECLINED you can either re-open or block re-request.
@@ -72,7 +73,7 @@ public class FriendshipService {
     @Transactional
     public FriendshipDto accept(UUID me, UUID friendshipId) {
         CustomerFriendship f = friendshipRepository.findById(friendshipId)
-                .orElseThrow(() -> new EntityNotFoundException("Friendship not found"));
+                .orElseThrow(() -> new NotFoundException("Friendship not found"));
 
         ensureParticipant(me, f);
 
@@ -91,7 +92,7 @@ public class FriendshipService {
     @Transactional
     public FriendshipDto decline(UUID me, UUID friendshipId) {
         CustomerFriendship f = friendshipRepository.findById(friendshipId)
-                .orElseThrow(() -> new EntityNotFoundException("Friendship not found"));
+                .orElseThrow(() -> new NotFoundException("Friendship not found"));
 
         ensureParticipant(me, f);
 
@@ -110,7 +111,7 @@ public class FriendshipService {
     @Transactional
     public FriendshipDto cancel(UUID me, UUID friendshipId) {
         CustomerFriendship f = friendshipRepository.findById(friendshipId)
-                .orElseThrow(() -> new EntityNotFoundException("Friendship not found"));
+                .orElseThrow(() -> new NotFoundException("Friendship not found"));
 
         ensureParticipant(me, f);
 

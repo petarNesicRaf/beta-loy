@@ -10,6 +10,8 @@ public record TokenResponse(
         UUID userId,
         String userType,
         UUID tenantId,
-        List<String> roles
+        List<String> roles,
+        String refreshToken,
+        long refreshExpiresInSeconds
 ) {
 }

@@ -33,7 +33,9 @@ public class ReceiptClaimService {
     private final VenueRepository venueRepository;
     private final PointsService pointsService;
 
-
+    //scan tj ulazna tacka za racune
+    //pravi racun, pravi claim,
+    // prosledjuje point servisu, servis vraca zaradjene poene u ReceiptClaimResponse
     @Transactional
     public ReceiptClaimResponse claimIndividual(ReceiptClaimRequest req) {
         UUID customerId = CurrentUser.requirePrincipal().userId();
@@ -61,7 +63,7 @@ public class ReceiptClaimService {
         String reqPib   = normalizePib(req.pib());
 
         if (venuePib == null || venuePib.isBlank()) {
-            throw new IllegalStateException("Venue PIB is not configured");
+            throw new com.beta.loyalty.exception.ConflictException("Venue PIB is not configured");
         }
 
         if (!venuePib.equals(reqPib)) {
@@ -78,24 +80,23 @@ public class ReceiptClaimService {
                 req.currency()
         );
 
-        // 2) lock or create receipt (idempotent)
+        // ako racun ne postoji u bazi insertuje ga, u suprotnom je zakljucan
         Receipt receipt = lockOrCreateReceipt(venueRef, req, receiptHash);
 
-        // 3) lock or create claim (idempotent)
         ReceiptClaim claim = lockOrCreateClaim(customerRef, venueRef, receipt);
 
         // If claim already finalized/approved earlier, return without re-awarding.
         // (Ledger idempotency also protects, but returning early is cleaner.)
+        // todo bolje da vrati neuspesna transakcija nego 0 poena,uspesna
         if (claim.getFinalizedAt() != null) {
             return new ReceiptClaimResponse(receipt.getId(), claim.getId(), claim.getStatus().name(), 0L);
         }
 
-        // 4) calculate points (MVP rule: 1 point per 100 currency units)
+        // kalkulisanje poena 100din -> 1 poen
         long points = calculatePointsMvp(req.amount());
 
         claim.setCalculatedPointsTotal(points);
 
-        // For MVP, auto-finalize immediately:
         claim.setStatus(ReceiptClaimStatus.FINALIZED);
         claim.setFinalizedAt(java.time.OffsetDateTime.now());
         claimRepository.save(claim);
@@ -110,16 +111,6 @@ public class ReceiptClaimService {
         );
 
         return new ReceiptClaimResponse(receipt.getId(), claim.getId(), claim.getStatus().name(), points);
-    }
-
-    private long calculatePointsMvp(BigDecimal amount) {
-        // Example: 1 point per 100
-        return amount.divide(new BigDecimal("100"), 0, RoundingMode.FLOOR).longValue();
-    }
-    private String normalizePib(String pib) {
-        if (pib == null) return null;
-        // keep only digits (PIB is numeric)
-        return pib.replaceAll("\\D", "");
     }
 
     private Receipt lockOrCreateReceipt(Venue venueRef, ReceiptClaimRequest req, String receiptHash) {
@@ -171,4 +162,18 @@ public class ReceiptClaimService {
                     .orElseThrow(() -> new IllegalStateException("Claim exists but not found"));
         }
     }
+
+
+
+
+    private long calculatePointsMvp(BigDecimal amount) {
+        // Example: 1 point per 100
+        return amount.divide(new BigDecimal("100"), 0, RoundingMode.FLOOR).longValue();
+    }
+    private String normalizePib(String pib) {
+        if (pib == null) return null;
+        // keep only digits (PIB is numeric)
+        return pib.replaceAll("\\D", "");
+    }
+
 }

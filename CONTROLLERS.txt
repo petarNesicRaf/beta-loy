@@ -1,0 +1,655 @@
+================================================================================
+  LOYALTY APP — CONTROLLER API REFERENCE
+================================================================================
+
+All endpoints are prefixed with /api/v1
+Authentication: Bearer JWT token in the Authorization header (except login endpoints)
+Paginated endpoints accept: ?page=0&size=20&sort=field,asc
+
+
+================================================================================
+  1. AUTH CONTROLLER
+  Base path: /api/v1/auth
+================================================================================
+
+------------------------------------------------------------------------
+POST /api/v1/auth/google
+------------------------------------------------------------------------
+Purpose:
+  Log in (or auto-register) a customer using a Google ID token obtained
+  from the Google Sign-In flow on the client. If the Google account is
+  seen for the first time, a new customer is created automatically.
+
+Input (JSON body):
+  {
+    "idToken": "eyJhbGciOiJSUzI1NiJ9..."   // required — Google OIDC token
+  }
+
+Output (JSON):
+  {
+    "accessToken":      "eyJhbGciOi...",
+    "tokenType":        "Bearer",
+    "expiresInSeconds": 3600,
+    "userId":           "550e8400-e29b-41d4-a716-446655440000",
+    "userType":         "CUSTOMER",
+    "tenantId":         null,
+    "roles":            ["ROLE_CUSTOMER"]
+  }
+
+Errors:
+  401 — customer account exists but is DISABLED
+
+
+------------------------------------------------------------------------
+POST /api/v1/auth/customer/login
+------------------------------------------------------------------------
+Purpose:
+  Log in an existing customer with email or phone + password.
+
+Input (JSON body):
+  {
+    "identifier": "alice@example.com",   // required — email or phone number
+    "password":   "mypassword"           // required
+  }
+
+Output (JSON):
+  {
+    "accessToken":      "eyJhbGciOi...",
+    "tokenType":        "Bearer",
+    "expiresInSeconds": 3600,
+    "userId":           "550e8400-e29b-41d4-a716-446655440000",
+    "userType":         "CUSTOMER",
+    "tenantId":         null,
+    "roles":            ["ROLE_CUSTOMER"]
+  }
+
+Errors:
+  401 — wrong password, account not found, or account is DISABLED
+
+
+------------------------------------------------------------------------
+POST /api/v1/auth/staff/login
+------------------------------------------------------------------------
+Purpose:
+  Log in a staff user (owner, manager, cashier) with email or phone +
+  password. The token will contain the staff member's tenant ID and
+  their assigned roles.
+
+Input (JSON body):
+  {
+    "identifier": "manager@acme.com",   // required — email or phone number
+    "password":   "mypassword"          // required
+  }
+
+Output (JSON):
+  {
+    "accessToken":      "eyJhbGciOi...",
+    "tokenType":        "Bearer",
+    "expiresInSeconds": 3600,
+    "userId":           "660e8400-e29b-41d4-a716-446655440001",
+    "userType":         "STAFF",
+    "tenantId":         "770e8400-e29b-41d4-a716-446655440002",
+    "roles":            ["ROLE_OWNER", "ROLE_STAFF"]
+  }
+
+Errors:
+  401 — wrong password, account not found, or account is DISABLED
+
+
+================================================================================
+  2. CUSTOMER CONTROLLER
+  Base path: /api/v1/customer
+  Requires: CUSTOMER JWT
+================================================================================
+
+------------------------------------------------------------------------
+GET /api/v1/customer/me
+------------------------------------------------------------------------
+Purpose:
+  Returns the profile of the currently logged-in customer.
+
+Input:
+  None (identity is read from the JWT token)
+
+Output (JSON):
+  {
+    "id":          "550e8400-e29b-41d4-a716-446655440000",
+    "email":       "alice@example.com",
+    "displayName": "Alice Smith"
+  }
+
+
+------------------------------------------------------------------------
+GET /api/v1/customer/points-per-venue
+------------------------------------------------------------------------
+Purpose:
+  Returns a list of all venues where the customer has a points account,
+  along with their current point balance at each venue. Used to build
+  the "my points" overview screen.
+
+Input:
+  None (identity is read from the JWT token)
+
+Output (JSON array):
+  [
+    {
+      "venueId":   "aa000000-0000-0000-0000-000000000001",
+      "venueName": "Kafic Kod Marka",
+      "balance":   350
+    },
+    {
+      "venueId":   "bb000000-0000-0000-0000-000000000002",
+      "venueName": "Pizzeria Roma",
+      "balance":   120
+    }
+  ]
+
+
+================================================================================
+  3. CUSTOMER VENUE CONTROLLER
+  Base path: /api/v1/customer/venues
+  Requires: CUSTOMER JWT
+================================================================================
+
+------------------------------------------------------------------------
+GET /api/v1/customer/venues
+------------------------------------------------------------------------
+Purpose:
+  Returns a paginated list of all active venues. Used for the main
+  venue discovery / browse screen.
+
+Input:
+  Query params (optional): ?page=0&size=20&sort=name,asc
+
+Output (JSON — paginated):
+  {
+    "content": [
+      {
+        "id":      "aa000000-0000-0000-0000-000000000001",
+        "name":    "Kafic Kod Marka",
+        "address": "Bulevar Kralja Aleksandra 10",
+        "city":    "Beograd",
+        "country": "Serbia",
+        "type":    "DEFAULT"
+      }
+    ],
+    "totalElements": 42,
+    "totalPages":    3,
+    "number":        0,
+    "size":          20
+  }
+
+
+------------------------------------------------------------------------
+GET /api/v1/customer/venues/search?q={query}
+------------------------------------------------------------------------
+Purpose:
+  Searches venues by name (case-insensitive, partial match). Returns
+  a flat list (not paginated) suitable for a search-as-you-type input.
+
+Input:
+  Query param: ?q=kafa
+
+Output (JSON array):
+  [
+    {
+      "id":      "aa000000-0000-0000-0000-000000000001",
+      "name":    "Kafic Kod Marka",
+      "address": "Bulevar Kralja Aleksandra 10",
+      "city":    "Beograd",
+      "country": "Serbia",
+      "type":    "DEFAULT"
+    }
+  ]
+
+
+------------------------------------------------------------------------
+GET /api/v1/customer/venues/{venueId}/rewards
+------------------------------------------------------------------------
+Purpose:
+  Returns the details of a specific venue together with all its active
+  rewards and the customer's current point balance there. Used for the
+  venue detail screen (acts as a progress bar toward the next reward).
+
+Input:
+  Path variable: venueId (UUID)
+
+Output (JSON):
+  {
+    "id":           "aa000000-0000-0000-0000-000000000001",
+    "name":         "Kafic Kod Marka",
+    "address":      "Bulevar Kralja Aleksandra 10",
+    "city":         "Beograd",
+    "pointBalance": 350,
+    "rewards": [
+      {
+        "id":          "cc000000-0000-0000-0000-000000000003",
+        "name":        "Besplatna kafa",
+        "description": "Jedan besplatni espresso",
+        "pointsCost":  200,
+        "validFrom":   "2025-01-01T00:00:00Z",
+        "validTo":     "2025-12-31T23:59:59Z",
+        "stock":       50
+      }
+    ]
+  }
+
+Notes:
+  - validFrom / validTo can be null if the reward has no time restriction
+  - stock can be null if the reward has unlimited quantity
+
+
+================================================================================
+  4. RECEIPT CLAIM CONTROLLER
+  Base path: /api/v1/customer/receipts
+  Requires: CUSTOMER JWT
+================================================================================
+
+------------------------------------------------------------------------
+POST /api/v1/customer/receipts/claim
+------------------------------------------------------------------------
+Purpose:
+  The customer submits a receipt to earn loyalty points. The system
+  deduplicates receipts using a SHA-256 hash of the receipt data, so
+  submitting the same receipt twice returns the same result without
+  awarding points a second time.
+
+  Point rule (MVP): floor(amount / 100) = 1 point per 100 currency units.
+  Example: 1500 RSD = 15 points, 99 RSD = 0 points.
+
+  In production the qrRaw field would contain the raw QR string from
+  the fiscal receipt so the server can verify it against the government
+  API. For now the client sends all receipt data manually.
+
+Input (JSON body):
+  {
+    "venueId":           "aa000000-0000-0000-0000-000000000001",  // required
+    "pib":               "123456789",                              // required — venue tax ID
+    "qrRaw":             null,                                     // optional — QR string from fiscal receipt
+    "issuedAt":          "2025-07-01T14:30:00+02:00",             // required
+    "amount":            1500.00,                                  // required — must be > 0
+    "currency":          "RSD",                                    // required
+    "externalReceiptId": "REC-20250701-001"                        // optional — receipt serial number
+  }
+
+Output (JSON):
+  {
+    "receiptId": "dd000000-0000-0000-0000-000000000004",
+    "claimId":   "ee000000-0000-0000-0000-000000000005",
+    "status":    "FINALIZED",
+    "pointsEarned": 15
+  }
+
+Notes:
+  - If the receipt was already claimed, pointsEarned will be 0 (idempotent)
+  - pib must match the PIB configured on the venue, otherwise 400 is returned
+
+
+================================================================================
+  5. CUSTOMER REDEMPTION CONTROLLER
+  Base path: /api/v1/customer/redemptions
+  Requires: CUSTOMER JWT
+================================================================================
+
+------------------------------------------------------------------------
+POST /api/v1/customer/redemptions/venues/{venueId}/create
+------------------------------------------------------------------------
+Purpose:
+  The customer requests a reward at a specific venue. This creates a
+  PENDING redemption request that expires in 5 minutes. The request
+  appears in the staff's pending list so a staff member can approve or
+  reject it.
+
+  Point cost is snapshotted at request time to protect against
+  reward price changes during the approval window.
+
+  Supply idempotencyKey to safely retry without creating duplicates.
+
+Input:
+  Path variable: venueId (UUID)
+
+  JSON body:
+  {
+    "rewardId":       "cc000000-0000-0000-0000-000000000003",  // required
+    "idempotencyKey": "my-unique-key-123",                     // optional — for safe retries
+    "customerNote":   "Table 5, please"                        // optional — max 500 chars
+  }
+
+Output (JSON):
+  {
+    "id":                 "ff000000-0000-0000-0000-000000000006",
+    "venueId":            "aa000000-0000-0000-0000-000000000001",
+    "rewardId":           "cc000000-0000-0000-0000-000000000003",
+    "customerId":         "550e8400-e29b-41d4-a716-446655440000",
+    "status":             "PENDING",
+    "pointsCostSnapshot": 200,
+    "requestedAt":        "2025-07-01T14:35:00+02:00",
+    "expiresAt":          "2025-07-01T14:40:00+02:00",
+    "approvedAt":         null,
+    "rejectedAt":         null,
+    "fulfilledAt":        null
+  }
+
+Errors:
+  400 — reward not found for that venue
+  400 — reward is not active, not yet started, or already expired
+
+
+================================================================================
+  6. STAFF REDEMPTION CONTROLLER
+  Base path: /api/v1/staff/redemptions
+  Requires: STAFF JWT + must be assigned to the venue
+================================================================================
+
+------------------------------------------------------------------------
+GET /api/v1/staff/redemptions/{venueId}/redemptions/pending
+------------------------------------------------------------------------
+Purpose:
+  Returns all PENDING redemption requests for a venue. Staff polls
+  this endpoint every few seconds to see new incoming reward requests
+  from customers.
+
+Input:
+  Path variable: venueId (UUID)
+
+Output (JSON array):
+  [
+    {
+      "id":                 "ff000000-0000-0000-0000-000000000006",
+      "venueId":            "aa000000-0000-0000-0000-000000000001",
+      "rewardId":           "cc000000-0000-0000-0000-000000000003",
+      "customerId":         "550e8400-e29b-41d4-a716-446655440000",
+      "status":             "PENDING",
+      "pointsCostSnapshot": 200,
+      "requestedAt":        "2025-07-01T14:35:00+02:00",
+      "expiresAt":          "2025-07-01T14:40:00+02:00",
+      "approvedAt":         null,
+      "rejectedAt":         null,
+      "fulfilledAt":        null
+    }
+  ]
+
+
+------------------------------------------------------------------------
+POST /api/v1/staff/redemptions/{id}/decide
+------------------------------------------------------------------------
+Purpose:
+  The staff member approves or rejects a PENDING redemption request.
+
+  On APPROVE:
+    - Points are debited from the customer's account (idempotent)
+    - Daily limit per customer is checked
+    - Reward stock is decremented atomically (if stock-limited)
+    - Status becomes APPROVED
+
+  On REJECT:
+    - No points are touched
+    - Status becomes REJECTED
+
+  If the request has already expired (past expiresAt), it is marked
+  EXPIRED and the decision is ignored.
+
+  Calling decide on an already-decided request is a no-op (idempotent).
+
+Input:
+  Path variable: id (UUID — redemption request ID)
+
+  JSON body:
+  {
+    "decision": "APPROVE",          // required — APPROVE or REJECT
+    "reason":   "Looks good!"       // optional — reason text
+  }
+
+Output (JSON):
+  {
+    "id":                 "ff000000-0000-0000-0000-000000000006",
+    "venueId":            "aa000000-0000-0000-0000-000000000001",
+    "rewardId":           "cc000000-0000-0000-0000-000000000003",
+    "customerId":         "550e8400-e29b-41d4-a716-446655440000",
+    "status":             "APPROVED",
+    "pointsCostSnapshot": 200,
+    "requestedAt":        "2025-07-01T14:35:00+02:00",
+    "expiresAt":          "2025-07-01T14:40:00+02:00",
+    "approvedAt":         "2025-07-01T14:36:00+02:00",
+    "rejectedAt":         null,
+    "fulfilledAt":        null
+  }
+
+Errors:
+  403 — staff member is not assigned to this venue
+  400 — redemption request not found
+
+
+------------------------------------------------------------------------
+POST /api/v1/staff/redemptions/{id}/fulfill
+------------------------------------------------------------------------
+Purpose:
+  The staff physically hands over the reward to the customer and marks
+  the redemption as FULFILLED. This is the final step in the flow.
+  Can only be called on APPROVED requests.
+
+Input:
+  Path variable: id (UUID — redemption request ID)
+  No body required.
+
+Output (JSON):
+  {
+    "id":                 "ff000000-0000-0000-0000-000000000006",
+    "venueId":            "aa000000-0000-0000-0000-000000000001",
+    "rewardId":           "cc000000-0000-0000-0000-000000000003",
+    "customerId":         "550e8400-e29b-41d4-a716-446655440000",
+    "status":             "FULFILLED",
+    "pointsCostSnapshot": 200,
+    "requestedAt":        "2025-07-01T14:35:00+02:00",
+    "expiresAt":          "2025-07-01T14:40:00+02:00",
+    "approvedAt":         "2025-07-01T14:36:00+02:00",
+    "rejectedAt":         null,
+    "fulfilledAt":        "2025-07-01T14:37:00+02:00"
+  }
+
+Errors:
+  400 — request is not in APPROVED status
+  403 — staff member is not assigned to this venue
+
+
+================================================================================
+  7. FRIENDS CONTROLLER
+  Base path: /api/v1/customer/me/friends
+  Requires: CUSTOMER JWT
+================================================================================
+
+------------------------------------------------------------------------
+GET /api/v1/customer/me/friends/search?q={query}
+------------------------------------------------------------------------
+Purpose:
+  Search for other customers by username. Excludes the current user
+  from results. Shows the friendship status with each result so the
+  client can render the right action button (Add / Pending / Friends).
+
+Input:
+  Query params:
+    q    — search string (matched against username)
+    page — page number (default 0)
+    size — page size (default 20)
+
+Output (JSON — paginated):
+  {
+    "content": [
+      {
+        "id":               "550e8400-e29b-41d4-a716-446655440099",
+        "username":         "bobsmith",
+        "displayName":      "Bob Smith",
+        "relationshipStatus": "PENDING",   // null | PENDING | ACCEPTED | BLOCKED
+        "outgoingRequest":  true,          // true if I sent the request
+        "incomingRequest":  false          // true if they sent the request
+      }
+    ],
+    "totalElements": 5,
+    "totalPages":    1,
+    "number":        0,
+    "size":          20
+  }
+
+
+------------------------------------------------------------------------
+POST /api/v1/customer/me/friends/requests
+------------------------------------------------------------------------
+Purpose:
+  Send a friend request to another customer.
+
+Input (JSON body):
+  {
+    "targetCustomerId": "550e8400-e29b-41d4-a716-446655440099"  // required
+  }
+
+Output (JSON):
+  {
+    "id":              "77000000-0000-0000-0000-000000000007",
+    "otherCustomerId": "550e8400-e29b-41d4-a716-446655440099",
+    "otherUsername":   "bobsmith",
+    "otherDisplayName":"Bob Smith",
+    "status":          "PENDING",
+    "requestedByMe":   true,
+    "respondedAt":     null
+  }
+
+
+------------------------------------------------------------------------
+POST /api/v1/customer/me/friends/requests/{friendshipId}/accept
+------------------------------------------------------------------------
+Purpose:
+  Accept an incoming friend request. Only the recipient can call this.
+
+Input:
+  Path variable: friendshipId (UUID)
+
+Output (JSON):
+  {
+    "id":              "77000000-0000-0000-0000-000000000007",
+    "otherCustomerId": "550e8400-e29b-41d4-a716-446655440000",
+    "otherUsername":   "alice",
+    "otherDisplayName":"Alice Smith",
+    "status":          "ACCEPTED",
+    "requestedByMe":   false,
+    "respondedAt":     "2025-07-01T15:00:00+02:00"
+  }
+
+
+------------------------------------------------------------------------
+POST /api/v1/customer/me/friends/requests/{friendshipId}/decline
+------------------------------------------------------------------------
+Purpose:
+  Decline an incoming friend request. Only the recipient can call this.
+
+Input:
+  Path variable: friendshipId (UUID)
+
+Output (JSON):
+  {
+    "id":              "77000000-0000-0000-0000-000000000007",
+    "otherCustomerId": "550e8400-e29b-41d4-a716-446655440000",
+    "otherUsername":   "alice",
+    "otherDisplayName":"Alice Smith",
+    "status":          "DECLINED",
+    "requestedByMe":   false,
+    "respondedAt":     "2025-07-01T15:01:00+02:00"
+  }
+
+
+------------------------------------------------------------------------
+POST /api/v1/customer/me/friends/requests/{friendshipId}/cancel
+------------------------------------------------------------------------
+Purpose:
+  Cancel an outgoing friend request that has not yet been responded to.
+  Only the sender can call this.
+
+Input:
+  Path variable: friendshipId (UUID)
+
+Output (JSON):
+  {
+    "id":              "77000000-0000-0000-0000-000000000007",
+    "otherCustomerId": "550e8400-e29b-41d4-a716-446655440099",
+    "otherUsername":   "bobsmith",
+    "otherDisplayName":"Bob Smith",
+    "status":          "CANCELLED",
+    "requestedByMe":   true,
+    "respondedAt":     "2025-07-01T15:02:00+02:00"
+  }
+
+
+------------------------------------------------------------------------
+GET /api/v1/customer/me/friends/accepted
+------------------------------------------------------------------------
+Purpose:
+  Returns a paginated list of all accepted friends of the current user.
+
+Input:
+  Query params (optional): ?page=0&size=20
+
+Output (JSON — paginated):
+  {
+    "content": [
+      {
+        "id":              "77000000-0000-0000-0000-000000000007",
+        "otherCustomerId": "550e8400-e29b-41d4-a716-446655440099",
+        "otherUsername":   "bobsmith",
+        "otherDisplayName":"Bob Smith",
+        "status":          "ACCEPTED",
+        "requestedByMe":   true,
+        "respondedAt":     "2025-07-01T15:00:00+02:00"
+      }
+    ],
+    "totalElements": 12,
+    "totalPages":    1,
+    "number":        0,
+    "size":          20
+  }
+
+
+------------------------------------------------------------------------
+GET /api/v1/customer/me/friends/requests/incoming
+------------------------------------------------------------------------
+Purpose:
+  Returns a paginated list of all pending friend requests that other
+  customers have sent to the current user (waiting for my response).
+
+Input:
+  Query params (optional): ?page=0&size=20
+
+Output (JSON — paginated): same shape as /accepted, status = "PENDING", requestedByMe = false
+
+
+------------------------------------------------------------------------
+GET /api/v1/customer/me/friends/requests/outgoing
+------------------------------------------------------------------------
+Purpose:
+  Returns a paginated list of all pending friend requests the current
+  user has sent that haven't been accepted or declined yet.
+
+Input:
+  Query params (optional): ?page=0&size=20
+
+Output (JSON — paginated): same shape as /accepted, status = "PENDING", requestedByMe = true
+
+
+================================================================================
+  REDEMPTION STATUS FLOW
+================================================================================
+
+  PENDING --> APPROVED --> FULFILLED
+     |
+     +--> REJECTED  (staff rejects, out of stock, daily limit reached)
+     |
+     +--> EXPIRED   (5-minute window passed before staff decided)
+
+
+================================================================================
+  ENUM VALUES
+================================================================================
+
+  RedemptionStatus:   PENDING, APPROVED, REJECTED, FULFILLED, EXPIRED
+  FriendshipStatus:   PENDING, ACCEPTED, DECLINED, CANCELLED, BLOCKED
+  DecisionType:       APPROVE, REJECT
+  VenueType:          DEFAULT  (more types planned)
+  UserType:           CUSTOMER, STAFF

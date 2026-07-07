@@ -29,7 +29,7 @@ public class CustomerSearchService {
     @Transactional(readOnly = true)
     public Page<CustomerSearchItemDto> searchByUsername(UUID me, String q, Pageable pageable) {
         String query = (q == null) ? "" : q.trim().toLowerCase();
-        if (query.length() < 2) { // anti-enumeration guard (tune as you like)
+        if (query.length() < 1) { // anti-enumeration guard (tune as you like)
             return Page.empty(pageable);
         }
 

@@ -1,8 +1,7 @@
-package com.beta.loyalty.security;
+package com.beta.loyalty.security.jwt;
 
 import com.beta.loyalty.security.AuthPrincipal;
 import com.beta.loyalty.security.UserType;
-import com.beta.loyalty.security.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;

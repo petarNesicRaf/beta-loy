@@ -66,7 +66,7 @@ public class PointsService {
         // 3) For spend, prevent negative
         long newBalance = account.getCurrentBalance() + delta;
         if (newBalance < 0) {
-            throw new IllegalStateException("Insufficient points");
+            throw new com.beta.loyalty.exception.ConflictException("Insufficient points");
         }
 
         // 4) Create ledger entry
@@ -121,6 +121,7 @@ public class PointsService {
         }
     }
 
+    //todo refactor metodu
     @Transactional
     public void debitForRedemption(UUID tenantId, UUID customerId, UUID venueId, UUID redemptionRequestId, long pointsCost) {
 
@@ -128,7 +129,7 @@ public class PointsService {
                 .orElseThrow(() -> new IllegalStateException("PointsAccount missing"));
 
         if (pa.getCurrentBalance() < pointsCost) {
-            throw new IllegalStateException("Insufficient points");
+            throw new com.beta.loyalty.exception.ConflictException("Insufficient points");
         }
 
         if (ledgerRepository.existsBySourceTypeAndSourceIdAndCustomerId(
@@ -142,12 +143,13 @@ public class PointsService {
         entry.setVenue(pa.getVenue());
         entry.setCustomer(pa.getCustomer());
         entry.setType(LedgerType.DEBIT);
+        //smanji u ledger
         entry.setPointsDelta(-pointsCost);
         entry.setSourceType(LedgerSourceType.REDEMPTION_REQUEST);
         entry.setSourceId(redemptionRequestId);
 
         ledgerRepository.save(entry);
-
+        //smanji points acc
         pa.setCurrentBalance(pa.getCurrentBalance() - pointsCost);
         pointsAccountRepository.save(pa);
     }

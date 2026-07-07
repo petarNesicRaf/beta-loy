@@ -39,7 +39,7 @@ public class RedemptionDecisionService {
 
         UUID venueId = rr.getVenue().getId();
         if (!staffAssignmentRepository.existsByStaffUserIdAndVenueIdAndActiveTrue(staffUserId, venueId)) {
-            throw new SecurityException("Staff not assigned to venue");
+            throw new com.beta.loyalty.exception.ForbiddenException("Staff not assigned to venue");
         }
 
         // idempotent: already decided

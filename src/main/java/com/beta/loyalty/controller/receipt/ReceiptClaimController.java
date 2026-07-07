@@ -20,6 +20,11 @@ import java.util.UUID;
 public class ReceiptClaimController {
     private final ReceiptClaimService receiptClaimService;
 
+
+    //skeniranje
+    //trenutno klijent salje pib, koliko je potrosio, tj fejkuje ceo racun
+    //dok u produkciji salje se qrRaw string gde ce da se nalazi link do drzavnog sajta za racune
+    //odatle verifikuje i svlaci racun
     @PostMapping("/claim")
     public ReceiptClaimResponse claim(@Valid @RequestBody ReceiptClaimRequest req) {
         // For now: mimic auth by header

@@ -1,18 +1,19 @@
 package com.beta.loyalty.service.auth;
 
+import com.beta.loyalty.exception.NotFoundException;
 import com.beta.loyalty.security.AuthPrincipal;
 import com.beta.loyalty.security.UserType;
 import com.beta.loyalty.dto.auth.LoginRequest;
 import com.beta.loyalty.dto.auth.TokenResponse;
-import com.beta.loyalty.security.JwtService;
+import com.beta.loyalty.security.jwt.JwtService;
 import com.beta.loyalty.repository.auth.CustomerAuthRepository;
 import com.beta.loyalty.repository.auth.StaffAuthRepository;
 import com.beta.loyalty.security.OauthProvider;
-import com.beta.loyalty.security.GoogleIdTokenVerifierService;
+import com.beta.loyalty.security.google.GoogleIdTokenVerifierService;
 import com.beta.loyalty.dto.auth.GoogleLoginRequest;
 import com.beta.loyalty.repository.auth.CustomerIdentityRepository;
 import com.beta.loyalty.exception.UnauthorizedException;
-import com.beta.loyalty.security.JwtProperties;
+import com.beta.loyalty.security.jwt.JwtProperties;
 import com.beta.loyalty.domain.Customer;
 import com.beta.loyalty.domain.CustomerIdentity;
 import com.beta.loyalty.domain.enums.CustomerStatus;
@@ -35,6 +36,7 @@ public class AuthService {
     private final JwtProperties jwtProps;
     private final CustomerIdentityRepository customerIdentityRepository;
     private final GoogleIdTokenVerifierService googleIdTokenVerifierService;
+    private final RefreshTokenService refreshTokenService;
 
     public TokenResponse customerGoogleLogin(GoogleLoginRequest req){
         var oidc = googleIdTokenVerifierService.verify(req.idToken());
@@ -77,6 +79,7 @@ public class AuthService {
         var principal = new AuthPrincipal(customer.getId(), UserType.CUSTOMER, null);
         var roles = List.of("ROLE_CUSTOMER");
         String token = jwtService.mintAccessToken(principal, roles);
+        var rt = refreshTokenService.create(customer.getId(), UserType.CUSTOMER, null, roles);
 
         return new TokenResponse(
                 token,
@@ -85,7 +88,9 @@ public class AuthService {
                 customer.getId(),
                 com.beta.loyalty.security.UserType.CUSTOMER.name(),
                 null,
-                roles
+                roles,
+                rt.getToken().toString(),
+                jwtProps.refreshTokenSeconds()
         );
 
     }
@@ -102,6 +107,7 @@ public class AuthService {
         var principal = new AuthPrincipal(customer.getId(), UserType.CUSTOMER, null);
         var roles = List.of("ROLE_CUSTOMER");
         String token = jwtService.mintAccessToken(principal, roles);
+        var rt = refreshTokenService.create(customer.getId(), UserType.CUSTOMER, null, roles);
 
         return new TokenResponse(
                 token,
@@ -110,7 +116,9 @@ public class AuthService {
                 customer.getId(),
                 UserType.CUSTOMER.name(),
                 null,
-                roles
+                roles,
+                rt.getToken().toString(),
+                jwtProps.refreshTokenSeconds()
         );
     }
 
@@ -137,6 +145,7 @@ public class AuthService {
 
         var principal = new AuthPrincipal(staff.getId(), UserType.STAFF, staff.getTenant().getId());
         String token = jwtService.mintAccessToken(principal, roles);
+        var rt = refreshTokenService.create(staff.getId(), UserType.STAFF, staff.getTenant().getId(), roles);
 
         return new TokenResponse(
                 token,
@@ -145,7 +154,9 @@ public class AuthService {
                 staff.getId(),
                 UserType.STAFF.name(),
                 staff.getTenant().getId(),
-                roles
+                roles,
+                rt.getToken().toString(),
+                jwtProps.refreshTokenSeconds()
         );
     }
     private Customer findCustomerByIdentifier(String identifier) {
@@ -158,12 +169,9 @@ public class AuthService {
     }
 
     private StaffUser findStaffByIdentifier(String identifier) {
-        if (identifier == null || identifier.isBlank()) throw new UnauthorizedException("Invalid credentials");
+        if (identifier == null || identifier.isBlank() || !identifier.contains("@")) throw new UnauthorizedException("Invalid credentials");
 
-        return (identifier.contains("@")
-                ? staffRepo.findByEmailIgnoreCase(identifier)
-                : staffRepo.findByPhone(identifier)
-        ).orElseThrow(() -> new UnauthorizedException("Invalid credentials"));
+        return staffRepo.findByEmailIgnoreCase(identifier).orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private static List<String> concat(List<String> roles, String extra) {

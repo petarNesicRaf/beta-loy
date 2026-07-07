@@ -24,6 +24,9 @@ public interface PointsAccountRepository extends JpaRepository<PointsAccount, UU
             @Param("venueId") UUID venueId
     );
 
+
+
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         SELECT pa FROM PointsAccount pa
@@ -31,6 +34,8 @@ public interface PointsAccountRepository extends JpaRepository<PointsAccount, UU
     """)
     Optional<PointsAccount> findForUpdate(@Param("customerId") UUID customerId,
                                           @Param("venueId") UUID venueId);
+
+
 
     List<PointsAccount> findByCustomer_IdAndCurrentBalanceGreaterThan(
             UUID customerId,

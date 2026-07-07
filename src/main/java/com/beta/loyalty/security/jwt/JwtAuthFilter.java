@@ -1,4 +1,4 @@
-package com.beta.loyalty.security;
+package com.beta.loyalty.security.jwt;
 
 import com.beta.loyalty.security.AuthPrincipal;
 import com.beta.loyalty.security.UserType;

@@ -25,7 +25,8 @@ public class ReceiptClaim extends TenantOwnedEntity {
     //neko claim-uje da poeni pripadaju njemu
     //racunu se dodeljuje musterija
     //sadrzi skenirani racun i lokal
-
+    //akcija klijenta da claimuje racun, moze da prodje a i ne mora
+    //moze vise claima na jedan racun ali nece da prodju zato sto je lockovano
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "venue_id", nullable = false)
     Venue venue;

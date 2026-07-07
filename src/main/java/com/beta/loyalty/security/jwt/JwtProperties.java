@@ -1,4 +1,4 @@
-package com.beta.loyalty.security;
+package com.beta.loyalty.security.jwt;
 
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -9,5 +9,6 @@ import org.springframework.validation.annotation.Validated;
 public record JwtProperties(
         @NotBlank String issuer,
         @NotBlank String secret,
-        long accessTokenSeconds
+        long accessTokenSeconds,
+        long refreshTokenSeconds
 ) {}

@@ -40,7 +40,7 @@ public class CustomerVenueService {
 
     @Transactional(readOnly = true)
     public List<VenuePublicResponse> searchByName(String q){
-        if(q == null || q.trim().length()<2){
+        if(q == null || q.trim().length()<1){
             return List.of();
         }
         Pageable limit = PageRequest.of(0,10, Sort.by("name"));
@@ -49,12 +49,15 @@ public class CustomerVenueService {
                 .map(VenuePublicResponse::from)
                 .getContent();
     }
+
+
     @Transactional(readOnly = true)
     public VenueDetailsResponse getActiveVenue(UUID venueId) {
         Venue venue = venueRepository.findByIdAndStatus(venueId, VenueStatus.ACTIVE)
                 .orElseThrow(() -> new NotFoundException("Venue not found"));
         return VenueDetailsResponse.from(venue);
     }
+
 
     @Transactional(readOnly = true)
     public VenueDetailsWithRewardResponse getVenueDetails(UUID venueId){

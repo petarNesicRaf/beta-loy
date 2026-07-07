@@ -1,7 +1,8 @@
 package com.beta.loyalty.security;
 
-import com.beta.loyalty.security.JwtAuthFilter;
-import com.beta.loyalty.security.JwtService;
+import com.beta.loyalty.security.jwt.JwtAuthFilter;
+import com.beta.loyalty.security.jwt.JwtProperties;
+import com.beta.loyalty.security.jwt.JwtService;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

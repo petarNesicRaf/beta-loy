@@ -19,6 +19,8 @@ import java.util.UUID;
 public class CustomerService {
     private final CustomerRepository customerRepository;
     private final PointsAccountRepository pointsAccountRepository;
+
+
     @Transactional(readOnly = true)
     public CustomerMeResponse me() {
         UUID customerId = CurrentUser.requirePrincipal().userId();
@@ -33,8 +35,11 @@ public class CustomerService {
         );
     }
 
+
+    //vraca sve zaradjene poene za sve lokale gde je korisnik zaradjivao poene
     @Transactional(readOnly = true)
     public List<CustomerVenuePointsAccount> pointsAccPerVenue(){
+
         UUID customerId = CurrentUser.requirePrincipal().userId();
         List<PointsAccount> accounts  = pointsAccountRepository
                 .findByCustomer_IdAndCurrentBalanceGreaterThan(customerId, 0L);

@@ -24,10 +24,12 @@ import java.util.UUID;
 public class CustomerController {
     private final CustomerService customerService;
 
+    //vraca profil
     @GetMapping("/me")
     public CustomerMeResponse me(){
         return customerService.me();
     }
+
 
     @GetMapping("/points-per-venue")
     public List<CustomerVenuePointsAccount> pointsPerVenue(){

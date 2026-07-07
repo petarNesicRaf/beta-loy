@@ -1,4 +1,4 @@
-package com.beta.loyalty.security;
+package com.beta.loyalty.security.google;
 
 import com.beta.loyalty.security.VerifiedOidcUser;
 import com.beta.loyalty.exception.UnauthorizedException;
