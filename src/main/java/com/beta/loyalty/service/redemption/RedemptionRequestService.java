@@ -1,5 +1,6 @@
 package com.beta.loyalty.service.redemption;
 
+import com.beta.loyalty.exception.NotFoundException;
 import com.beta.loyalty.repository.customer.CustomerRepository;
 import com.beta.loyalty.domain.Customer;
 import com.beta.loyalty.domain.enums.RedemptionStatus;
@@ -11,6 +12,8 @@ import com.beta.loyalty.dto.redemption.RedemptionRequestDto;
 import com.beta.loyalty.repository.redemption.RedemptionRequestRepository;
 import com.beta.loyalty.repository.reward.RewardRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +62,18 @@ public class RedemptionRequestService {
 
         redemptionRequestRepository.save(rr);
         return toDto(rr);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<RedemptionRequestDto> getMyHistory(UUID customerId, Pageable pageable) {
+        return redemptionRequestRepository.findByCustomerId(customerId, pageable).map(this::toDto);
+    }
+
+    @Transactional(readOnly = true)
+    public RedemptionRequestDto getMyOne(UUID customerId, UUID redemptionId) {
+        return redemptionRequestRepository.findByIdAndCustomerId(redemptionId, customerId)
+                .map(this::toDto)
+                .orElseThrow(() -> new NotFoundException("Redemption not found"));
     }
 
     public RedemptionRequestDto toDto(RedemptionRequest rr) {

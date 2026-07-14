@@ -97,4 +97,23 @@ public interface RedemptionRequestRepository extends JpaRepository<RedemptionReq
             @Param("venueId")    UUID venueId,
             Pageable pageable
     );
+
+    @Query("""
+    select rr from RedemptionRequest rr
+    where rr.customer.id = :customerId
+    order by rr.requestedAt desc
+    """)
+    Page<RedemptionRequest> findByCustomerId(
+            @Param("customerId") UUID customerId,
+            Pageable pageable
+    );
+
+    @Query("""
+    select rr from RedemptionRequest rr
+    where rr.id = :id and rr.customer.id = :customerId
+    """)
+    Optional<RedemptionRequest> findByIdAndCustomerId(
+            @Param("id")         UUID id,
+            @Param("customerId") UUID customerId
+    );
 }

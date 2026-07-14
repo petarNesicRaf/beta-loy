@@ -2,9 +2,8 @@ package com.beta.loyalty.service.venue;
 
 import com.beta.loyalty.security.CurrentUser;
 import com.beta.loyalty.exception.NotFoundException;
-import com.beta.loyalty.domain.enums.RewardStatus;
 import com.beta.loyalty.domain.enums.VenueStatus;
-import com.beta.loyalty.domain.PointsAccount;
+import com.beta.loyalty.domain.enums.VenueType;
 import com.beta.loyalty.domain.Venue;
 import com.beta.loyalty.repository.points.PointsAccountRepository;
 import com.beta.loyalty.dto.reward.RewardPublicResponse;
@@ -21,7 +20,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -39,15 +41,13 @@ public class CustomerVenueService {
     }
 
     @Transactional(readOnly = true)
-    public List<VenuePublicResponse> searchByName(String q){
-        if(q == null || q.trim().length()<1){
-            return List.of();
-        }
-        Pageable limit = PageRequest.of(0,10, Sort.by("name"));
-
-        return venueRepository.findByNameContainingIgnoreCaseAndStatus(q.trim(), VenueStatus.ACTIVE,limit)
-                .map(VenuePublicResponse::from)
-                .getContent();
+    public Page<VenuePublicResponse> search(String q, Set<VenueType> types, Pageable pageable) {
+        String normalizedQ = (q == null || q.isBlank()) ? null : q.trim();
+        Collection<VenueType> effectiveTypes = (types == null || types.isEmpty())
+                ? Arrays.asList(VenueType.values())
+                : types;
+        return venueRepository.search(normalizedQ, effectiveTypes, pageable)
+                .map(VenuePublicResponse::from);
     }
 
 

@@ -7,6 +7,8 @@ import com.beta.loyalty.service.redemption.RedemptionRequestService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -14,18 +16,7 @@ import java.util.UUID;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/customer/redemptions")
-@Tag(
-        name = "Customer Redemption",
-        description = "Ovo je controller za slanje request-a za nagradu flow za to je:\n" +
-                " POST /api/v1/customer/redemptions/venues/{venueId}/create -> kreira PENDING request za nagradu\n"+
-                " Staff-u se ubacuje u listu koju polluje svakih 3-5 sek- za pocetak \n"+
-                " GET /api/v1/staff/venues/{venueId}/redemptions/pending \n" +
-                " Staff odlucuje sta ce da radi sa request-om \n" +
-                " POST /api/v1/staff/redemptions/{id}/decide \n" +
-                " Staff donosi odluku i salje je na fullfill (ako je approve, dekrementira poene useru, stavi status APPROVED, opciono dekrementira lager za tu nagradu\n"
-                + " POST /api/v1/staff/redemptions/{id}/fulfill - zavrsava transakciju\n "
-)
-
+@Tag(name = "Customer Redemption", description = "Request rewards and view redemption history")
 public class CustomerRedemptionController {
 
     private final RedemptionRequestService redemptionRequestService;
@@ -35,7 +26,19 @@ public class CustomerRedemptionController {
             @PathVariable UUID venueId,
             @Valid @RequestBody CreateRedemptionRequestDto req
     ) {
-        UUID currUuid = CurrentUser.principal().get().userId();
+        UUID currUuid = CurrentUser.requirePrincipal().userId();
         return redemptionRequestService.create(currUuid, venueId, req);
+    }
+
+    @GetMapping
+    public Page<RedemptionRequestDto> myHistory(Pageable pageable) {
+        UUID customerId = CurrentUser.requirePrincipal().userId();
+        return redemptionRequestService.getMyHistory(customerId, pageable);
+    }
+
+    @GetMapping("/{id}")
+    public RedemptionRequestDto myOne(@PathVariable UUID id) {
+        UUID customerId = CurrentUser.requirePrincipal().userId();
+        return redemptionRequestService.getMyOne(customerId, id);
     }
 }

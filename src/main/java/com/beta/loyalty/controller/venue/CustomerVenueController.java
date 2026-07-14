@@ -1,5 +1,6 @@
 package com.beta.loyalty.controller.venue;
 
+import com.beta.loyalty.domain.enums.VenueType;
 import com.beta.loyalty.dto.venue.VenueDetailsWithRewardResponse;
 import com.beta.loyalty.dto.venue.VenuePublicResponse;
 import com.beta.loyalty.service.venue.CustomerVenueService;
@@ -9,7 +10,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @RestController
@@ -28,8 +29,11 @@ public class CustomerVenueController {
     }
 
     @GetMapping("/search")
-    public List<VenuePublicResponse> search(@RequestParam("q") String q){
-        return customerVenueService.searchByName(q);
+    public Page<VenuePublicResponse> search(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Set<VenueType> types,
+            Pageable pageable) {
+        return customerVenueService.search(q, types, pageable);
     }
 
     @GetMapping("/{venueId}/rewards")

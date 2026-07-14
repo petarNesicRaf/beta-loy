@@ -1,0 +1,14 @@
+package com.beta.loyalty.repository.venue;
+
+import com.beta.loyalty.domain.VenueFavorite;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+public interface VenueFavoriteRepository extends JpaRepository<VenueFavorite, UUID> {
+    List<VenueFavorite> findByCustomer_Id(UUID customerId);
+    Optional<VenueFavorite> findByCustomer_IdAndVenue_Id(UUID customerId, UUID venueId);
+    boolean existsByCustomer_IdAndVenue_Id(UUID customerId, UUID venueId);
+}
