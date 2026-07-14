@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -51,5 +54,47 @@ public interface RedemptionRequestRepository extends JpaRepository<RedemptionReq
     List<RedemptionRequest> findActivePendingByVenue(
             UUID venueId,
             RedemptionStatus status
+    );
+
+    @Query("""
+    select rr from RedemptionRequest rr
+    where rr.venue.id        = :venueId
+      and rr.venue.tenant.id = :tenantId
+      and (:status is null or rr.status = :status)
+      and (:from   is null or rr.requestedAt >= :from)
+      and (:to     is null or rr.requestedAt <= :to)
+    order by rr.requestedAt desc
+    """)
+    Page<RedemptionRequest> findHistory(
+            @Param("venueId")  UUID venueId,
+            @Param("tenantId") UUID tenantId,
+            @Param("status")   RedemptionStatus status,
+            @Param("from")     OffsetDateTime from,
+            @Param("to")       OffsetDateTime to,
+            Pageable pageable
+    );
+
+    @Query("""
+    select rr from RedemptionRequest rr
+    where rr.id              = :id
+      and rr.venue.id        = :venueId
+      and rr.venue.tenant.id = :tenantId
+    """)
+    Optional<RedemptionRequest> findByIdAndVenueIdAndTenantId(
+            @Param("id")       UUID id,
+            @Param("venueId")  UUID venueId,
+            @Param("tenantId") UUID tenantId
+    );
+
+    @Query("""
+    select rr from RedemptionRequest rr
+    where rr.customer.id = :customerId
+      and rr.venue.id    = :venueId
+    order by rr.requestedAt desc
+    """)
+    Page<RedemptionRequest> findByCustomerIdAndVenueId(
+            @Param("customerId") UUID customerId,
+            @Param("venueId")    UUID venueId,
+            Pageable pageable
     );
 }

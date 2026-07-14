@@ -4,6 +4,7 @@ import com.beta.loyalty.domain.BaseEntity;
 import com.beta.loyalty.domain.enums.RewardStatus;
 import com.beta.loyalty.domain.RedemptionRequest;
 import com.beta.loyalty.domain.Venue;
+import com.beta.loyalty.dto.reward.UpdateRewardRequest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,6 +12,8 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
 @Getter
 @Setter
 @Entity
@@ -45,4 +48,30 @@ public class Reward extends BaseEntity {
 
     @OneToMany(mappedBy = "reward", fetch = FetchType.LAZY)
     List<RedemptionRequest> redemptionRequests = new ArrayList<>();
+
+
+
+    public void update(UpdateRewardRequest request) {
+
+        Optional.ofNullable(request.name())
+                .ifPresent(this::setName);
+
+        Optional.ofNullable(request.description())
+                .ifPresent(this::setDescription);
+
+        Optional.ofNullable(request.pointsCost())
+                .ifPresent(this::setPointsCost);
+
+        Optional.ofNullable(request.validFrom())
+                .ifPresent(this::setValidFrom);
+
+        Optional.ofNullable(request.validTo())
+                .ifPresent(this::setValidTo);
+
+        Optional.ofNullable(request.stock())
+                .ifPresent(this::setStock);
+
+        Optional.ofNullable(request.perCustomerLimitPerDay())
+                .ifPresent(this::setPerCustomerLimitPerDay);
+    }
 }

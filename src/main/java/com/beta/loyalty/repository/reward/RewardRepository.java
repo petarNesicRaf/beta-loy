@@ -1,6 +1,9 @@
 package com.beta.loyalty.repository.reward;
 
 import com.beta.loyalty.domain.Reward;
+import com.beta.loyalty.domain.Venue;
+import com.beta.loyalty.domain.enums.RewardStatus;
+import com.beta.loyalty.domain.enums.VenueStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,6 +17,12 @@ import java.util.UUID;
 
 public interface RewardRepository extends JpaRepository<Reward, UUID> {
     Page<Reward> findAllByVenueId(UUID venueId, Pageable pageable);
+
+    @Query("select r from Reward r where r.venue.id = :venueId and r.venue.tenant.id = :tenantId")
+    Page<Reward> findAllByVenueIdAndTenantId(@Param("venueId") UUID venueId, @Param("tenantId") UUID tenantId, Pageable pageable);
+
+    @Query("select r from Reward r where r.id = :id and r.venue.tenant.id = :tenantId")
+    Optional<Reward> findByIdAndTenantId(@Param("id") UUID id, @Param("tenantId") UUID tenantId);
 
     @Query("select r from Reward r where r.id = :rewardId and r.venue.id = :venueId")
     Optional<Reward> findByIdAndVenueId(@Param("rewardId") UUID rewardId, @Param("venueId") UUID venueId);
@@ -29,4 +38,7 @@ public interface RewardRepository extends JpaRepository<Reward, UUID> {
           and r.stock > 0
     """)
     int decrementStockIfAvailable(@Param("rewardId") UUID rewardId);
+
+    Optional<Reward> findByIdAndStatus(UUID id, RewardStatus status);
+
 }

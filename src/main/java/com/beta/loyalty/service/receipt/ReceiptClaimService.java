@@ -9,9 +9,11 @@ import com.beta.loyalty.domain.enums.ReceiptStatus;
 import com.beta.loyalty.domain.Receipt;
 import com.beta.loyalty.domain.ReceiptClaim;
 import com.beta.loyalty.domain.Venue;
+import com.beta.loyalty.domain.PointsRule;
 import com.beta.loyalty.service.points.PointsService;
 import com.beta.loyalty.dto.receipt.ReceiptClaimRequest;
 import com.beta.loyalty.dto.receipt.ReceiptClaimResponse;
+import com.beta.loyalty.repository.points.PointsRuleRepository;
 import com.beta.loyalty.repository.receipt.ReceiptClaimRepository;
 import com.beta.loyalty.repository.receipt.ReceiptRepository;
 import com.beta.loyalty.repository.venue.VenueRepository;
@@ -22,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -32,6 +36,7 @@ public class ReceiptClaimService {
     private final CustomerAuthRepository customerAuthRepository;
     private final VenueRepository venueRepository;
     private final PointsService pointsService;
+    private final PointsRuleRepository pointsRuleRepository;
 
     //scan tj ulazna tacka za racune
     //pravi racun, pravi claim,
@@ -92,8 +97,7 @@ public class ReceiptClaimService {
             return new ReceiptClaimResponse(receipt.getId(), claim.getId(), claim.getStatus().name(), 0L);
         }
 
-        // kalkulisanje poena 100din -> 1 poen
-        long points = calculatePointsMvp(req.amount());
+        long points = calculatePoints(req.amount(), venueRef.getId());
 
         claim.setCalculatedPointsTotal(points);
 
@@ -166,9 +170,22 @@ public class ReceiptClaimService {
 
 
 
-    private long calculatePointsMvp(BigDecimal amount) {
-        // Example: 1 point per 100
-        return amount.divide(new BigDecimal("100"), 0, RoundingMode.FLOOR).longValue();
+    private long calculatePoints(BigDecimal amount, UUID venueId) {
+        Optional<PointsRule> activeRule = pointsRuleRepository.findActiveByVenueId(venueId, OffsetDateTime.now());
+
+        if (activeRule.isEmpty()) {
+            // fallback: 1 point per 100
+            return amount.divide(new BigDecimal("100"), 0, RoundingMode.FLOOR).longValue();
+        }
+
+        PointsRule rule = activeRule.get();
+        BigDecimal raw = amount.multiply(rule.getBaseFactor());
+
+        return switch (rule.getRoundingMode()) {
+            case FLOOR   -> raw.setScale(0, RoundingMode.FLOOR).longValue();
+            case CEIL    -> raw.setScale(0, RoundingMode.CEILING).longValue();
+            case NEAREST -> raw.setScale(0, RoundingMode.HALF_UP).longValue();
+        };
     }
     private String normalizePib(String pib) {
         if (pib == null) return null;

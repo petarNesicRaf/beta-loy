@@ -20,4 +20,11 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
         and c.status = 'ACTIVE'
     """)
     Page<Customer> searchByUsernamePrefix(@Param("q") String q, Pageable pageable);
+
+    @Query("""
+      select c from Customer c
+      where lower(c.email) like lower(concat('%', :q, '%'))
+         or lower(c.username) like lower(concat('%', :q, '%'))
+    """)
+    Page<Customer> searchByEmailOrUsername(@Param("q") String q, Pageable pageable);
 }

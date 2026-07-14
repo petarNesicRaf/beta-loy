@@ -3,11 +3,16 @@ package com.beta.loyalty.service.redemption;
 import com.beta.loyalty.domain.enums.RedemptionStatus;
 import com.beta.loyalty.domain.RedemptionRequest;
 import com.beta.loyalty.dto.redemption.RedemptionRequestDto;
+import com.beta.loyalty.exception.ForbiddenException;
+import com.beta.loyalty.exception.NotFoundException;
 import com.beta.loyalty.repository.redemption.RedemptionRequestRepository;
 import com.beta.loyalty.repository.venue.VenueStaffAssignmentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +34,36 @@ public class StaffRedemptionService {
                 .stream()
                 .map(this::toDto)
                 .toList();
+    }
+
+    public Page<RedemptionRequestDto> getHistory(
+            UUID staffUserId,
+            UUID tenantId,
+            UUID venueId,
+            RedemptionStatus status,
+            OffsetDateTime from,
+            OffsetDateTime to,
+            Pageable pageable) {
+
+        if (!staffAssignmentRepository.existsByStaffUserIdAndVenueIdAndActiveTrue(staffUserId, venueId)) {
+            throw new ForbiddenException("Staff not assigned to venue");
+        }
+
+        return redemptionRequestRepository
+                .findHistory(venueId, tenantId, status, from, to, pageable)
+                .map(this::toDto);
+    }
+
+    public RedemptionRequestDto getOne(UUID staffUserId, UUID tenantId, UUID venueId, UUID redemptionId) {
+
+        if (!staffAssignmentRepository.existsByStaffUserIdAndVenueIdAndActiveTrue(staffUserId, venueId)) {
+            throw new ForbiddenException("Staff not assigned to venue");
+        }
+
+        return redemptionRequestRepository
+                .findByIdAndVenueIdAndTenantId(redemptionId, venueId, tenantId)
+                .map(this::toDto)
+                .orElseThrow(() -> new NotFoundException("Redemption not found"));
     }
 
     private RedemptionRequestDto toDto(RedemptionRequest rr) {

@@ -16,4 +16,6 @@ public interface VenueRepository extends JpaRepository<Venue, UUID> {
     Page<Venue> findByNameContainingIgnoreCaseAndStatus(String name, VenueStatus status,Pageable pageable);
     Optional<Venue> findByIdAndStatus(UUID id, VenueStatus status);
     boolean existsByIdAndStatus(UUID id, VenueStatus status);
+    Optional<Venue> findByIdAndTenantId(UUID id, UUID tenantId);
+    Page<Venue> findAllByTenantId(UUID tenantId, Pageable pageable);
 }
