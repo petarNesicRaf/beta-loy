@@ -42,4 +42,10 @@ public interface PointsAccountRepository extends JpaRepository<PointsAccount, UU
             long balance
     );
 
+    @Query("SELECT COALESCE(SUM(pa.currentBalance), 0) FROM PointsAccount pa WHERE pa.customer.id = :customerId")
+    long sumBalanceByCustomerId(@Param("customerId") UUID customerId);
+
+    @Query("SELECT COUNT(pa) FROM PointsAccount pa WHERE pa.customer.id = :customerId")
+    long countByCustomerId(@Param("customerId") UUID customerId);
+
 }

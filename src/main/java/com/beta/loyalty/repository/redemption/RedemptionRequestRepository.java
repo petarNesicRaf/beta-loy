@@ -116,4 +116,10 @@ public interface RedemptionRequestRepository extends JpaRepository<RedemptionReq
             @Param("id")         UUID id,
             @Param("customerId") UUID customerId
     );
+
+    @Query("SELECT COUNT(rr) FROM RedemptionRequest rr WHERE rr.customer.id = :customerId AND rr.status = :status")
+    long countByCustomerIdAndStatus(
+            @Param("customerId") UUID customerId,
+            @Param("status")     RedemptionStatus status
+    );
 }

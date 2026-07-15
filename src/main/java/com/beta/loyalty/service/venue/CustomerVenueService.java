@@ -8,6 +8,7 @@ import com.beta.loyalty.domain.Venue;
 import com.beta.loyalty.repository.points.PointsAccountRepository;
 import com.beta.loyalty.dto.reward.RewardPublicResponse;
 import com.beta.loyalty.repository.reward.RewardRepository;
+import com.beta.loyalty.dto.reward.RewardBrowseResponse;
 import com.beta.loyalty.dto.venue.VenueDetailsResponse;
 import com.beta.loyalty.dto.venue.VenueDetailsWithRewardResponse;
 import com.beta.loyalty.dto.venue.VenuePublicResponse;
@@ -78,5 +79,11 @@ public class CustomerVenueService {
 
 
         return  VenueDetailsWithRewardResponse.from(venue, rewards, pointsBalance);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<RewardBrowseResponse> browseRewards(UUID venueId, Pageable pageable) {
+        return rewardRepository.findAllActiveFromActiveVenues(venueId, pageable)
+                .map(RewardBrowseResponse::from);
     }
 }

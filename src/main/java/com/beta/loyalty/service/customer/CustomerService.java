@@ -5,13 +5,16 @@ import com.beta.loyalty.domain.PointsAccount;
 import com.beta.loyalty.domain.enums.CustomerStatus;
 import com.beta.loyalty.dto.customer.ChangeCustomerPasswordRequest;
 import com.beta.loyalty.dto.customer.CustomerMeResponse;
+import com.beta.loyalty.dto.customer.CustomerStatsResponse;
 import com.beta.loyalty.dto.customer.CustomerVenuePointsAccount;
 import com.beta.loyalty.dto.customer.UpdateCustomerProfileRequest;
+import com.beta.loyalty.domain.enums.RedemptionStatus;
 import com.beta.loyalty.exception.ConflictException;
 import com.beta.loyalty.exception.NotFoundException;
 import com.beta.loyalty.exception.UnauthorizedException;
 import com.beta.loyalty.repository.customer.CustomerRepository;
 import com.beta.loyalty.repository.points.PointsAccountRepository;
+import com.beta.loyalty.repository.redemption.RedemptionRequestRepository;
 import com.beta.loyalty.security.CurrentUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +29,7 @@ import java.util.UUID;
 public class CustomerService {
     private final CustomerRepository customerRepository;
     private final PointsAccountRepository pointsAccountRepository;
+    private final RedemptionRequestRepository redemptionRequestRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
@@ -76,6 +80,16 @@ public class CustomerService {
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
         c.setStatus(CustomerStatus.DISABLED);
         customerRepository.save(c);
+    }
+
+    @Transactional(readOnly = true)
+    public CustomerStatsResponse getStats() {
+        UUID customerId = CurrentUser.requirePrincipal().userId();
+        long totalPoints = pointsAccountRepository.sumBalanceByCustomerId(customerId);
+        long venuesCount = pointsAccountRepository.countByCustomerId(customerId);
+        long rewardsRedeemed = redemptionRequestRepository
+                .countByCustomerIdAndStatus(customerId, RedemptionStatus.FULFILLED);
+        return new CustomerStatsResponse(totalPoints, venuesCount, rewardsRedeemed);
     }
 
     @Transactional(readOnly = true)

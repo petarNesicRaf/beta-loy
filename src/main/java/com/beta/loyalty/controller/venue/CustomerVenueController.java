@@ -1,6 +1,7 @@
 package com.beta.loyalty.controller.venue;
 
 import com.beta.loyalty.domain.enums.VenueType;
+import com.beta.loyalty.dto.reward.RewardBrowseResponse;
 import com.beta.loyalty.dto.venue.VenueDetailsWithRewardResponse;
 import com.beta.loyalty.dto.venue.VenuePublicResponse;
 import com.beta.loyalty.service.venue.CustomerVenueService;
@@ -39,5 +40,12 @@ public class CustomerVenueController {
     @GetMapping("/{venueId}/rewards")
     public VenueDetailsWithRewardResponse getVenueDetails(@PathVariable UUID venueId, Pageable pageable){
         return customerVenueService.getVenueDetails(venueId);
+    }
+
+    @GetMapping("/rewards")
+    public Page<RewardBrowseResponse> browseRewards(
+            @RequestParam(required = false) UUID venueId,
+            Pageable pageable) {
+        return customerVenueService.browseRewards(venueId, pageable);
     }
 }

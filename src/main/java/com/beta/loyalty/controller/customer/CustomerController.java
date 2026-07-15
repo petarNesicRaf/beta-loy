@@ -2,6 +2,7 @@ package com.beta.loyalty.controller.customer;
 
 import com.beta.loyalty.dto.customer.ChangeCustomerPasswordRequest;
 import com.beta.loyalty.dto.customer.CustomerMeResponse;
+import com.beta.loyalty.dto.customer.CustomerStatsResponse;
 import com.beta.loyalty.dto.customer.CustomerVenuePointsAccount;
 import com.beta.loyalty.dto.customer.UpdateCustomerProfileRequest;
 import com.beta.loyalty.dto.points.LedgerEntryResponse;
@@ -53,6 +54,11 @@ public class CustomerController {
     public void deleteAccount() {
         UUID customerId = CurrentUser.requirePrincipal().userId();
         customerService.deleteAccount(customerId);
+    }
+
+    @GetMapping("/stats")
+    public CustomerStatsResponse stats() {
+        return customerService.getStats();
     }
 
     @GetMapping("/points-per-venue")

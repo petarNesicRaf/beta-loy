@@ -41,4 +41,13 @@ public interface RewardRepository extends JpaRepository<Reward, UUID> {
 
     Optional<Reward> findByIdAndStatus(UUID id, RewardStatus status);
 
+    @Query("""
+        select r from Reward r
+        where r.status = com.beta.loyalty.domain.enums.RewardStatus.ACTIVE
+          and r.venue.status = com.beta.loyalty.domain.enums.VenueStatus.ACTIVE
+          and (:venueId is null or r.venue.id = :venueId)
+        order by r.pointsCost asc
+    """)
+    Page<Reward> findAllActiveFromActiveVenues(@Param("venueId") UUID venueId, Pageable pageable);
+
 }
