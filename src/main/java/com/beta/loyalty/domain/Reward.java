@@ -2,6 +2,7 @@ package com.beta.loyalty.domain;
 
 import com.beta.loyalty.domain.BaseEntity;
 import com.beta.loyalty.domain.enums.RewardStatus;
+import com.beta.loyalty.domain.enums.RewardTier;
 import com.beta.loyalty.domain.RedemptionRequest;
 import com.beta.loyalty.domain.Venue;
 import com.beta.loyalty.dto.reward.UpdateRewardRequest;
@@ -46,6 +47,10 @@ public class Reward extends BaseEntity {
     Integer stock;
     Integer perCustomerLimitPerDay;
 
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    RewardTier tier;
+
     @OneToMany(mappedBy = "reward", fetch = FetchType.LAZY)
     List<RedemptionRequest> redemptionRequests = new ArrayList<>();
 
@@ -73,5 +78,8 @@ public class Reward extends BaseEntity {
 
         Optional.ofNullable(request.perCustomerLimitPerDay())
                 .ifPresent(this::setPerCustomerLimitPerDay);
+
+        Optional.ofNullable(request.tier())
+                .ifPresent(this::setTier);
     }
 }

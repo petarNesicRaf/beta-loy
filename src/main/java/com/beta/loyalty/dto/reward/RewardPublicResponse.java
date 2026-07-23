@@ -2,6 +2,7 @@ package com.beta.loyalty.dto.reward;
 
 import com.beta.loyalty.domain.Reward;
 import com.beta.loyalty.domain.enums.RewardStatus;
+import com.beta.loyalty.domain.enums.RewardTier;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -16,7 +17,8 @@ public record RewardPublicResponse(
         long perCustomerLimitPerDay,
         OffsetDateTime validFrom,
         OffsetDateTime validTo,
-        Integer stock
+        Integer stock,
+        RewardTier tier
 )
 {
     public static RewardPublicResponse from(Reward reward) {
@@ -30,7 +32,8 @@ public record RewardPublicResponse(
                 reward.getPerCustomerLimitPerDay(),
                 reward.getValidFrom(),
                 reward.getValidTo(),
-                reward.getStock()
+                reward.getStock(),
+                reward.getTier()
         );
     }
 }

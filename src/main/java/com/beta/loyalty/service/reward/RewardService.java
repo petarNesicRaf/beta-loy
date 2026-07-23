@@ -15,6 +15,7 @@ import com.beta.loyalty.repository.venue.VenueStaffAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +28,7 @@ public class RewardService {
     private final VenueRepository venueRepository;
     private final VenueStaffAssignmentRepository staffAssignmentRepository;
 
+    @CacheEvict(value = "venue-rewards", allEntries = true)
     @Transactional
     public RewardPublicResponse createReward(UUID staffUserId, UUID tenantId, UUID venueId, RewardCreateRequest req) {
         Venue venue = venueRepository.findByIdAndTenantId(venueId, tenantId)
@@ -43,6 +45,7 @@ public class RewardService {
         reward.setValidTo(req.validTo());
         reward.setStock(req.stock());
         reward.setPerCustomerLimitPerDay(req.perCustomerLimitPerDay());
+        reward.setTier(req.tier());
         reward.setStatus(RewardStatus.ACTIVE);
 
         return RewardPublicResponse.from(rewardRepository.save(reward));
@@ -61,6 +64,7 @@ public class RewardService {
         return RewardPublicResponse.from(reward);
     }
 
+    @CacheEvict(value = "venue-rewards", allEntries = true)
     @Transactional
     public RewardPublicResponse updateReward(UUID staffUserId, UUID tenantId, UUID id, UpdateRewardRequest req) {
         Reward reward = rewardRepository.findByIdAndTenantId(id, tenantId)
@@ -75,10 +79,12 @@ public class RewardService {
         if (req.validTo() != null) reward.setValidTo(req.validTo());
         if (req.stock() != null) reward.setStock(req.stock());
         if (req.perCustomerLimitPerDay() != null) reward.setPerCustomerLimitPerDay(req.perCustomerLimitPerDay());
+        if (req.tier() != null) reward.setTier(req.tier());
 
         return RewardPublicResponse.from(reward);
     }
 
+    @CacheEvict(value = "venue-rewards", allEntries = true)
     @Transactional
     public RewardPublicResponse updateRewardStatus(UUID staffUserId, UUID tenantId, UUID id, UpdateRewardStatusRequest req) {
         Reward reward = rewardRepository.findByIdAndTenantId(id, tenantId)
@@ -90,6 +96,7 @@ public class RewardService {
         return RewardPublicResponse.from(reward);
     }
 
+    @CacheEvict(value = "venue-rewards", allEntries = true)
     @Transactional
     public void deleteReward(UUID staffUserId, UUID tenantId, UUID id) {
         Reward reward = rewardRepository.findByIdAndTenantId(id, tenantId)

@@ -1,5 +1,6 @@
 package com.beta.loyalty.dto.reward;
 
+import com.beta.loyalty.domain.enums.RewardTier;
 import jakarta.validation.constraints.*;
 
 import java.time.OffsetDateTime;
@@ -25,6 +26,8 @@ public record UpdateRewardRequest(
         Integer stock,
 
         @Min(1)
-        Integer perCustomerLimitPerDay
+        Integer perCustomerLimitPerDay,
+
+        RewardTier tier
 ) {
 }

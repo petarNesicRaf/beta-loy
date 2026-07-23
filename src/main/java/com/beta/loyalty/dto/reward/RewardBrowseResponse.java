@@ -1,6 +1,7 @@
 package com.beta.loyalty.dto.reward;
 
 import com.beta.loyalty.domain.Reward;
+import com.beta.loyalty.domain.enums.RewardTier;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -15,7 +16,8 @@ public record RewardBrowseResponse(
         long pointsCost,
         Integer stock,
         OffsetDateTime validFrom,
-        OffsetDateTime validTo
+        OffsetDateTime validTo,
+        RewardTier tier
 ) {
     public static RewardBrowseResponse from(Reward r) {
         return new RewardBrowseResponse(
@@ -28,7 +30,8 @@ public record RewardBrowseResponse(
                 r.getPointsCost(),
                 r.getStock(),
                 r.getValidFrom(),
-                r.getValidTo()
+                r.getValidTo(),
+                r.getTier()
         );
     }
 }

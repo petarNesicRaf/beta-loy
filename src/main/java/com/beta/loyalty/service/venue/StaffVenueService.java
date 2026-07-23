@@ -14,6 +14,7 @@ import com.beta.loyalty.repository.venue.VenueStaffAssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,7 @@ public class StaffVenueService {
     private final VenueStaffAssignmentRepository staffAssignmentRepository;
     private final TenantRepository tenantRepository;
 
+    @CacheEvict(value = "venues", allEntries = true)
     @Transactional
     public StaffVenueResponse createVenue(UUID tenantId, VenueCreateRequest req) {
         Venue venue = new Venue();
@@ -52,6 +54,7 @@ public class StaffVenueService {
         return StaffVenueResponse.from(findForTenant(tenantId, id));
     }
 
+    @CacheEvict(value = "venues", allEntries = true)
     @Transactional
     public StaffVenueResponse updateVenue(UUID staffUserId, UUID tenantId, UUID id, UpdateVenueRequest req) {
         Venue venue = findForTenant(tenantId, id);
@@ -68,6 +71,7 @@ public class StaffVenueService {
         return StaffVenueResponse.from(venue);
     }
 
+    @CacheEvict(value = "venues", allEntries = true)
     @Transactional
     public StaffVenueResponse updateVenueStatus(UUID staffUserId, UUID tenantId, UUID id, UpdateVenueStatusRequest req) {
         Venue venue = findForTenant(tenantId, id);

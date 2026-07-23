@@ -1,7 +1,10 @@
 package com.beta.loyalty.controller.venue;
 
 import com.beta.loyalty.domain.enums.VenueType;
+
+import java.util.List;
 import com.beta.loyalty.dto.reward.RewardBrowseResponse;
+import com.beta.loyalty.dto.venue.CustomerVenueEnrichedResponse;
 import com.beta.loyalty.dto.venue.VenueDetailsWithRewardResponse;
 import com.beta.loyalty.dto.venue.VenuePublicResponse;
 import com.beta.loyalty.service.venue.CustomerVenueService;
@@ -24,6 +27,11 @@ import java.util.UUID;
 public class CustomerVenueController {
     private final CustomerVenueService customerVenueService;
 
+    @GetMapping("/types")
+    public List<VenueType> types() {
+        return List.of(VenueType.values());
+    }
+
     @GetMapping
     public Page<VenuePublicResponse> list(Pageable pageable) {
         return customerVenueService.listActiveVenues(pageable);
@@ -38,8 +46,13 @@ public class CustomerVenueController {
     }
 
     @GetMapping("/{venueId}/rewards")
-    public VenueDetailsWithRewardResponse getVenueDetails(@PathVariable UUID venueId, Pageable pageable){
+    public VenueDetailsWithRewardResponse getVenueDetails(@PathVariable UUID venueId){
         return customerVenueService.getVenueDetails(venueId);
+    }
+
+    @GetMapping("/mine")
+    public Page<CustomerVenueEnrichedResponse> myVenues(Pageable pageable) {
+        return customerVenueService.getMyVenues(pageable);
     }
 
     @GetMapping("/rewards")
